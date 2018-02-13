@@ -16,14 +16,13 @@
 
 //Autonomous values
 
-#define MOGOHEIGHT 15  //Height to remove lift from way
+#define MOGOHEIGHT 15  //Height to remove lift from way of mobile goal mechanism
 
 
-#define STATGODROP 600  //FAKE NEWS
-#define STATGO1 900  //Height to stack 1st statgo cone
-#define STATGO2 1000  //Height to stack 2nd statgo cone
-#define STATGO3 1200  //Height to stack 3rd statgo cone
+#define STATGO1 22  //Height to stack 1st statgo cone (currently a guesstimate)
+#define STATGO2 25  //Height to stack 2nd statgo cone
+#define STATGO3 29  //Height to stack 3rd statgo cone
 #define LIFTTOP 80  //Height to max out lift
-#define LIFTBOTTOM 0  //lower than 0 to give a little passive power
+#define LIFTBOTTOM 0  //
 
 #endif

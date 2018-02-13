@@ -5,10 +5,19 @@
 
 bool mogoPosition = 0;
 int mogoMeasure = 0;
+bool panicMode = 0; //Puts mobile goal control into manual, in case of stuck cone or other circumstance
+bool button5Pressed = 0;
 
 void mogoLift(){
 
   mogoMeasure = encoderGet(mogoEncoder);
+
+  if((joystickGetDigital(1, 8, JOY_UP) && joystickGetDigital(1, 8, JOY_DOWN)) && !button5Pressed){
+    panicMode = 1;
+    button5Pressed = 1;
+  } else if ((joystickGetDigital(1, 8, JOY_UP)) + joystickGetDigital(1, 8, JOY_DOWN) == 0){
+    button5Pressed = 0;
+  }
 
   if(mogoPosition == 0){  //Attempts to acquire mogo holding position
     if(abs(mogoMeasure - MOGOTOP) == 0){

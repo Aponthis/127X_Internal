@@ -19,7 +19,7 @@ void initialize() {
   mogoEncoder = encoderInit(MOGOTOPPORT, MOGOBOTTOMPORT, true);
   driveEncoder = encoderInit(DRIVETOP, DRIVEBOTTOM, false);
   encoderReset(driveEncoder);
-  gyro = gyroInit(GYRO, 196);
+  gyro = gyroInit(GYRO, 392);  //720 ticks is a rotation
 
   lcdInit(LCDSCREEN);  //LCD initialization
   lcdSetBacklight(LCDSCREEN, true);

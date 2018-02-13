@@ -6,6 +6,7 @@
 #include "mogolift.h"
 #include "dr4b.h"
 #include "fourbar.h"
+#include "deadband.h"
 
 extern bool shouldDrop;
 extern bool shouldStack;
@@ -39,8 +40,18 @@ void liftAuto(void * parameter){ //Lift height task
 	}
 }
 
-PID drive_straight = { //Sets values for lift PID
+PID drive_position = { //Sets values for lift PID
+  .Kp = 0.020, .Ki = 0.001, .Kd = 0.005, .error = 0, .previous_error = 0, .integral = 0,
+  .derivative = 0, .target = 0, .actual = 0, .output_power = 0
+};
+
+PID drive_velocity = { //Sets values for lift PID
   .Kp = DRIVEKP, .Ki = DRIVEKI, .Kd = DRIVEKD, .error = 0, .previous_error = 0, .integral = 0,
+  .derivative = 0, .target = 16, .actual = 0, .output_power = 0
+};
+
+PID drive_turn = {
+  .Kp = 0.850, .Ki = 0.060, .Kd = 2.00, .error = 0, .previous_error = 0, .integral = 0,
   .derivative = 0, .target = 0, .actual = 0, .output_power = 0
 };
 
@@ -51,27 +62,22 @@ void drive(int targetValue, int delayAfterward, int cancelTime){
 
   driveOrTurn = 0;
 
-  drive_straight.target = targetValue;
+  drive_position.target = targetValue;
   canCancel = 1;
   cancelAfter = cancelTime;
-  //delayUntil(abs(left_wheels.error) < 25);
-  //delayUntil(abs(drive_straight.error) < 25);
-  //while(abs(drive_straight.error) > 25){
-  //  delay(20);
-  //}
+  delay(100);
+    while(abs(drive_position.error) > 25){
+     delay(20);
+   }
+
   canCancel = 0;
   delay(delayAfterward);
 
 }
 
-PID drive_turn = {
-  .Kp = 1.150, .Ki = 0.080, .Kd = 3.00, .error = 0, .previous_error = 0, .integral = 0,
-  .derivative = 0, .target = 0, .actual = 0, .output_power = 0
-};
-
 void turn(int targetDegrees, int delayAfterward, int cancelTime){
 		driveOrTurn = 1;
-		drive_turn.target = targetDegrees;
+		drive_turn.target = targetDegrees * 2;
 	  canCancel = 1;
 	  cancelAfter = cancelTime;
 	  while(abs(drive_turn.target - drive_turn.actual) > 1){
@@ -93,66 +99,141 @@ void fourBarAuto(void * parameter){
 void rollerAuto(void * parameter){
   while(isAutonomous()){
     roller();
-    lcdPrint(LCDSCREEN, 2, "%d", motorGet(ROLLER));
     delay(20);
   }
 }
 
+int leftDrivePower;
+int rightDrivePower;
+
+int lastPosition;  //for drive velocity PID
+int currentPosition;
+
 void driveAuto(void * parameter){ //Drive state task
   while(isAutonomous()){
+    drive_turn.actual = gyroGet(gyro);
+    drive_turn.error = drive_turn.target - drive_turn.actual;  //Proportional term
+    drive_turn.previous_error = drive_turn.error;
+    drive_turn.derivative = drive_turn.previous_error - drive_turn.error;  //Derivative term
+    if(abs(drive_turn.output_power < 127)){
+      drive_turn.integral += drive_turn.error;  //Integral term
+    }
+    if(abs(drive_turn.error) < 2){
+      drive_turn.integral = 0;
+    }
+
+    if(abs(drive_turn.error) > 20){
+      if (drive_turn.integral > 500){
+        drive_turn.integral = 500;
+      } else if (drive_turn.integral < -500){
+        drive_turn.integral = -500;
+      }
+    }
+    drive_turn.output_power = drive_turn.Kp * drive_turn.error + drive_turn.integral * \
+     drive_turn.Ki - drive_turn.derivative * drive_turn.Kd;
+
 		if(driveOrTurn == 0){
-	    drive_straight.actual = encoderGet(driveEncoder);
-	    drive_straight.previous_error = drive_straight.error;
-	    drive_straight.error = drive_straight.target - drive_straight.actual;  //Proportional term
-	    drive_straight.derivative = drive_straight.previous_error - drive_straight.error;  //Derivative term
-	    if(abs(drive_straight.output_power < 127)){
-	      drive_straight.integral += drive_straight.error;  //Integral term
-	    }
-	    if(abs(drive_straight.error) < 20){
-	      drive_straight.integral = 0;
-	    }
-			// if(abs(drive_straight.error) > 20){
-			// 	if (drive_straight.integral > 6000){
-			// 		drive_straight.integral = 6000;
-			// 	} else if (drive_straight.integral < -6000){
-			// 		drive_straight.integral = -6000;
-			// 	}
-			// }
+      if(drive_position.target - encoderGet(driveEncoder) < 400){
+  	    drive_position.actual = encoderGet(driveEncoder);
+  	    drive_position.previous_error = drive_position.error;
+  	    drive_position.error = drive_position.target - drive_position.actual;  //Proportional term
+  	    drive_position.derivative = drive_position.previous_error - drive_position.error;  //Derivative term
+  	    if(abs(drive_position.output_power < 127)){
+  	      drive_position.integral += drive_position.error;  //Integral term
+  	    }
+  	    if(abs(drive_position.error) < 20){
+  	      drive_position.integral = 0;
+  	    }
 
-      drive_straight.output_power = drive_straight.Kp * drive_straight.error + drive_straight.Ki\
-       * drive_straight.integral - drive_straight.Kd * drive_straight.derivative;
+        drive_position.output_power = drive_position.Kp * drive_position.error + drive_position.Ki\
+         * drive_position.integral - drive_position.Kd * drive_position.derivative;
+
+        if(drive_position.output_power > 127){
+         drive_position.output_power = 127;
+        } else if(drive_position.output_power < -127){
+         drive_position.output_power = -127;
+        }
+
+        leftDrivePower = drive_velocity.output_power - drive_turn.output_power;
+        rightDrivePower = drive_velocity.output_power + drive_turn.output_power;
+
+        if(leftDrivePower > 127){     //Makes sure both sides aren't just maxed out without a difference in velocity between sides for angle correction
+          rightDrivePower -= (leftDrivePower - 127);
+          leftDrivePower -= (leftDrivePower - 127);
+        }
+        if(rightDrivePower > 127){
+          leftDrivePower -= (rightDrivePower - 127);
+          rightDrivePower -= (rightDrivePower - 127);
+        }
+        if(leftDrivePower < -127){
+          rightDrivePower -= (leftDrivePower + 127);
+          leftDrivePower -= (leftDrivePower + 127);
+        }
+        if(rightDrivePower < -127){
+          leftDrivePower -= (rightDrivePower + 127);
+          rightDrivePower -= (rightDrivePower + 127);
+        }
+
+  			motorSet(LEFTDRIVE, -deadband(leftDrivePower));
+   		  motorSet(RIGHTDRIVE, -deadband(rightDrivePower));
+
+   		  //lcdPrint(LCDSCREEN, 1, "Left error: %f", left_wheels.error);  //Prints error to LCD
+      } else {
+        lastPosition = currentPosition;
+        currentPosition = encoderGet(driveEncoder);
+
+        drive_velocity.actual = currentPosition - lastPosition;
+
+        drive_velocity.error = drive_velocity.target - drive_velocity.actual;
+        drive_velocity.previous_error = drive_velocity.error;
+        drive_velocity.error = drive_velocity.target - drive_velocity.actual;  //Proportional term
+        drive_velocity.derivative = drive_velocity.previous_error - drive_velocity.error;  //Derivative term
+        if(abs(drive_velocity.output_power < 127)){
+          drive_velocity.integral += drive_velocity.error;  //Integral term
+        }
+        if(abs(drive_velocity.error) < 20){
+          drive_velocity.integral = 0;
+        }
+
+        drive_velocity.output_power = drive_velocity.Kp * drive_velocity.error + drive_velocity.Ki\
+         * drive_velocity.integral - drive_velocity.Kd * drive_velocity.derivative;
+
+        // if(drive_velocity.output_power > 127){
+        //   drive_velocity.output_power = 127;
+        // } else if(drive_velocity.output_power < -127){
+        //   drive_velocity.output_power = -127;
+        // }
+        leftDrivePower = drive_velocity.output_power - drive_turn.output_power;
+        rightDrivePower = drive_velocity.output_power + drive_turn.output_power;
+
+        if(leftDrivePower > 127){     //Makes sure both sides aren't just maxed out without a difference in velocity between sides for angle correction
+          rightDrivePower -= (leftDrivePower - 127);
+          leftDrivePower -= (leftDrivePower - 127);
+        }
+        if(rightDrivePower > 127){
+          leftDrivePower -= (rightDrivePower - 127);
+          rightDrivePower -= (rightDrivePower - 127);
+        }
+        if(leftDrivePower < -127){
+          rightDrivePower -= (leftDrivePower + 127);
+          leftDrivePower -= (leftDrivePower + 127);
+        }
+        if(rightDrivePower < -127){
+          leftDrivePower -= (rightDrivePower + 127);
+          rightDrivePower -= (rightDrivePower + 127);
+        }
+
+        motorSet(LEFTDRIVE, -deadband(leftDrivePower));
+        motorSet(RIGHTDRIVE, -deadband(rightDrivePower));
 
 
 
-			motorSet(LEFTDRIVE, -drive_straight.output_power);
- 		  motorSet(RIGHTDRIVE, -drive_straight.output_power);
-
- 		  //lcdPrint(LCDSCREEN, 1, "Left error: %f", left_wheels.error);  //Prints error to LCD
+      }
 		} else {
-			drive_turn.actual = gyroGet(gyro);
-	    drive_turn.previous_error = drive_turn.error;
-	    drive_turn.error = drive_turn.target - drive_turn.actual;  //Proportional term
-	    drive_turn.derivative = drive_turn.previous_error - drive_turn.error;  //Derivative term
-	    if(abs(drive_turn.output_power < 127)){
-	      drive_turn.integral += drive_turn.error;  //Integral term
-	    }
-	    if(abs(drive_turn.error) < 2){
-	      drive_turn.integral = 0;
-	    }
+      //If only turning, not moving forward
 
-			if(abs(drive_turn.error) > 20){
-				if (drive_turn.integral > 500){
-					drive_turn.integral = 500;
-				} else if (drive_turn.integral < -500){
-					drive_turn.integral = -500;
-				}
-			}
-
-			drive_turn.output_power = drive_turn.Kp * drive_turn.error + drive_turn.integral * \
-			 drive_turn.Ki - drive_turn.derivative * drive_turn.Kd;
-
-			motorSet(LEFTDRIVE, drive_turn.output_power);
- 		  motorSet(RIGHTDRIVE, -drive_turn.output_power);
+			motorSet(LEFTDRIVE, deadband(drive_turn.output_power));
+ 		  motorSet(RIGHTDRIVE, -deadband(drive_turn.output_power));
 
  		  //lcdPrint(LCDSCREEN, 1, "Gyro error: %f", drive_turn.error);
 		}
@@ -183,10 +264,6 @@ void mogoAutonomous(void * parameter){
     mogoLift();
     delay(20);
   }
-}
-
-void mogo(int8_t whatPosition, bool isSlow){ //0 stowed, 1 up, 2 down if going down slowly, then isSlow = true
-  mogoPosition = whatPosition;
 }
 
 void autonomous() {
@@ -226,8 +303,6 @@ void autonomous() {
 
     lift(LIFTTOP, 100, 2500);  //Bring lift up to flip out intake
 
-    //turn(45, 500, 2000);  //If offset to left
-
       lift(STATGO1, 200, 1500);
 
     if(autonVariation == 2){  //If waiting variant
@@ -235,15 +310,7 @@ void autonomous() {
       delay(3000);  //Wait
     }
 
-    //lift(LIFTBOTTOM, 800, 2500); //Pick up cone
-
-    //turn(0, 500, 2500);
-
     drive(1060, 2000, 5000);  //Drive toward statgo
-
-
-    lift(STATGODROP, 100, 1500);
-
 
     if(autonVariation == 1 || autonVariation == 2){
       drive(-1000, 400, 3000);
