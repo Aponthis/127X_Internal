@@ -36,7 +36,7 @@ void manualLift(){
     motorSet(RIGHTLIFT1, 0);
     motorSet(RIGHTLIFT2, 0);
   }
-  lcdPrint(LCDSCREEN, 1, "Lift: %d ", encoderGet(liftEncoder));
+  lcdPrint(LCDSCREEN, 1, "Pot: %d ", analogRead(SHIFTPOT));
   lcdPrint(LCDSCREEN, 2, "Cones: %d", stackedCones);
 }
 
@@ -73,10 +73,10 @@ void dr4bLift(){
           dr4b.target = 7;
           break;
           case 2:
-          dr4b.target = 12;
+          dr4b.target = 13;
           break;
           case 3:
-          dr4b.target = 17;
+          dr4b.target = 18;
           break;
           case 4:
           dr4b.target = 25;
@@ -100,19 +100,19 @@ void dr4bLift(){
           dr4b.target = 62;
           break;
           case 11:
-          dr4b.target = 70;
+          dr4b.target = 71;
           break;
           case 12:
-          dr4b.target = 78;
+          dr4b.target = 85;
           break;
           case 13:
-          dr4b.target = 84;
+          dr4b.target = 85;
           break;
           case 14:
-          dr4b.target = 84;
+          dr4b.target = 85;
           break;
           case 15:
-          dr4b.target = 84;
+          dr4b.target = 85;
       }
       if (mogoProtocol && dr4b.target < 26){
         dr4b.target = 26;

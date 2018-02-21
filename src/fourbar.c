@@ -14,7 +14,7 @@ extern bool manualMode;
 extern PID dr4b;
 bool mogoProtocol = 0;
 bool coneMode = 0; //0 for no cone held, 1 for cone held
-bool shouldStack = 1;
+bool shouldStack = 0;
 uint8_t stackedCones = 0;
 bool isStacking; //Stores whether the four-bar has tried to go up, to avoid throwing it down when the DR4B goes below a threshold
 extern int8_t autoloaderMode;
@@ -109,8 +109,8 @@ void roller(){
   }
 
   if(shouldStack && (four_bar.actual > STACKANGLE - 700) && isOpControl){
-    //delay(430);
-    //shouldDrop = 1;
+    delay(430);
+    shouldDrop = 1;
   }
   if(mogoProtocol && !(joystickGetDigital(1, 7, JOY_DOWN))){
     motorSet(ROLLER, 0);
@@ -126,6 +126,9 @@ void roller(){
         stackedCones +=1;
       }
       shouldStack = 0;
+      if(stackedCones == 13){
+        mogoProtocol = 1;
+      }
     }
   }
    else if(coneMode == 0){

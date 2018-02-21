@@ -64,6 +64,8 @@ void operatorControl() {
 	taskCreate(driveTask, TASK_DEFAULT_STACK_SIZE, NULL, TASK_PRIORITY_DEFAULT);
 	taskCreate(liftTask, TASK_DEFAULT_STACK_SIZE, NULL, TASK_PRIORITY_DEFAULT);
 	isOpControl = 1;
+
+  digitalWrite(LIGHTS, HIGH);
 	while (1) {
 		if(joystickGetDigital(1, 8, JOY_LEFT) && !button1Pressed){
 			manualMode = !manualMode;

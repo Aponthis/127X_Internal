@@ -14,6 +14,7 @@ void initialize() {
   analogCalibrate(SHIFTPOT);
 
   pinMode(BUMPER, INPUT);
+  pinMode(LIGHTS, OUTPUT);
 
   liftEncoder = encoderInit(LIFTTOPPORT, LIFTBOTTOMPORT, true);
   mogoEncoder = encoderInit(MOGOTOPPORT, MOGOBOTTOMPORT, true);

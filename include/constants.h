@@ -4,11 +4,11 @@
 #define MOGOBOTTOM -100
 #define MOGOTOP -5  //Top of mogo lift potentiometer reading
 
-#define STATGOANGLE 1800 //Angle for 4-bar to place cone on stationary goal
-#define STACKANGLE 2770 //Angle for 4-bar to stack cones
-#define HOLDANGLE 950  //Angle to hold out cone safely
-#define SAFEANGLE 820  //Angle that DR4B can start to safely move up
-#define PICKUPANGLE 780  //Angle for 4-bar to pick up cones
+#define STATGOANGLE 2300 //Angle for 4-bar to place cone on stationary goal
+#define STACKANGLE 3070 //Angle for 4-bar to stack cones
+#define HOLDANGLE 1150  //Angle to hold out cone safely
+#define SAFEANGLE 980  //Angle that DR4B can start to safely move up
+#define PICKUPANGLE 980  //Angle for 4-bar to pick up cones
 
 #define DRIVEKP 0.020
 #define DRIVEKI 0.001

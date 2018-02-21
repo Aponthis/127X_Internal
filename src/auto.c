@@ -40,18 +40,18 @@ void liftAuto(void * parameter){ //Lift height task
 	}
 }
 
-PID drive_position = { //Sets values for lift PID
-  .Kp = 0.020, .Ki = 0.001, .Kd = 0.005, .error = 0, .previous_error = 0, .integral = 0,
+PID drive_position = { //Sets values for drive position PID
+  .Kp = 0.150, .Ki = 0.001, .Kd = 0.003, .error = 0, .previous_error = 0, .integral = 0,
   .derivative = 0, .target = 0, .actual = 0, .output_power = 0
 };
 
-PID drive_velocity = { //Sets values for lift PID
-  .Kp = DRIVEKP, .Ki = DRIVEKI, .Kd = DRIVEKD, .error = 0, .previous_error = 0, .integral = 0,
+PID drive_velocity = { //Sets values for drive velocity PID
+  .Kp = 0.40, .Ki = 0, .Kd = 0, .error = 0, .previous_error = 0, .integral = 0,
   .derivative = 0, .target = 16, .actual = 0, .output_power = 0
 };
 
 PID drive_turn = {
-  .Kp = 0.850, .Ki = 0.060, .Kd = 2.00, .error = 0, .previous_error = 0, .integral = 0,
+  .Kp = 1.650, .Ki = 0.000, .Kd = 0.00, .error = 0, .previous_error = 0, .integral = 0,
   .derivative = 0, .target = 0, .actual = 0, .output_power = 0
 };
 
@@ -65,10 +65,11 @@ void drive(int targetValue, int delayAfterward, int cancelTime){
   drive_position.target = targetValue;
   canCancel = 1;
   cancelAfter = cancelTime;
-  delay(100);
-    while(abs(drive_position.error) > 25){
+  delay(200);
+    while(abs(drive_position.target - encoderGet(driveEncoder)) > 100){
      delay(20);
    }
+   delay(300);
 
   canCancel = 0;
   delay(delayAfterward);
@@ -80,7 +81,7 @@ void turn(int targetDegrees, int delayAfterward, int cancelTime){
 		drive_turn.target = targetDegrees * 2;
 	  canCancel = 1;
 	  cancelAfter = cancelTime;
-	  while(abs(drive_turn.target - drive_turn.actual) > 1){
+	  while(abs(drive_turn.target - drive_turn.actual) > 3){
       delay(20);
     }
 	  canCancel = 0;
@@ -103,14 +104,17 @@ void rollerAuto(void * parameter){
   }
 }
 
-int leftDrivePower;
-int rightDrivePower;
+int leftDrivePower = 0;
+int rightDrivePower = 0;
 
 int lastPosition;  //for drive velocity PID
 int currentPosition;
 
 void driveAuto(void * parameter){ //Drive state task
   while(isAutonomous()){
+
+    lcdPrint(LCDSCREEN, 1, "Left motors: %d", motorGet(LEFTDRIVE)); //oscillates
+    lcdPrint(LCDSCREEN, 2, "Target: %d", drive_turn.target);
     drive_turn.actual = gyroGet(gyro);
     drive_turn.error = drive_turn.target - drive_turn.actual;  //Proportional term
     drive_turn.previous_error = drive_turn.error;
@@ -122,26 +126,29 @@ void driveAuto(void * parameter){ //Drive state task
       drive_turn.integral = 0;
     }
 
-    if(abs(drive_turn.error) > 20){
-      if (drive_turn.integral > 500){
-        drive_turn.integral = 500;
-      } else if (drive_turn.integral < -500){
-        drive_turn.integral = -500;
-      }
-    }
+    // if(abs(drive_turn.error) > 20){
+    //   if (drive_turn.integral > 500){
+    //     drive_turn.integral = 500;
+    //   } else if (drive_turn.integral < -500){
+    //     drive_turn.integral = -500;
+    //   }
+    // }
     drive_turn.output_power = drive_turn.Kp * drive_turn.error + drive_turn.integral * \
      drive_turn.Ki - drive_turn.derivative * drive_turn.Kd;
 
 		if(driveOrTurn == 0){
-      if(drive_position.target - encoderGet(driveEncoder) < 400){
-  	    drive_position.actual = encoderGet(driveEncoder);
+      drive_position.actual = encoderGet(driveEncoder);
+      //lcdPrint(LCDSCREEN, 2, "LDrive: %d", leftDrivePower);
+
+
+      if(drive_position.target - drive_position.actual < 300){
   	    drive_position.previous_error = drive_position.error;
   	    drive_position.error = drive_position.target - drive_position.actual;  //Proportional term
   	    drive_position.derivative = drive_position.previous_error - drive_position.error;  //Derivative term
   	    if(abs(drive_position.output_power < 127)){
   	      drive_position.integral += drive_position.error;  //Integral term
   	    }
-  	    if(abs(drive_position.error) < 20){
+  	    if(abs(drive_position.error) < 40){
   	      drive_position.integral = 0;
   	    }
 
@@ -154,10 +161,10 @@ void driveAuto(void * parameter){ //Drive state task
          drive_position.output_power = -127;
         }
 
-        leftDrivePower = drive_velocity.output_power - drive_turn.output_power;
-        rightDrivePower = drive_velocity.output_power + drive_turn.output_power;
+        leftDrivePower = drive_position.output_power - drive_turn.output_power;
+        rightDrivePower = drive_position.output_power + drive_turn.output_power;
 
-        if(leftDrivePower > 127){     //Makes sure both sides aren't just maxed out without a difference in velocity between sides for angle correction
+        if(leftDrivePower > 127){     //Makes sure both sides aren't just maxxed out without a difference in velocity between sides for angle correction
           rightDrivePower -= (leftDrivePower - 127);
           leftDrivePower -= (leftDrivePower - 127);
         }
@@ -177,7 +184,7 @@ void driveAuto(void * parameter){ //Drive state task
   			motorSet(LEFTDRIVE, -deadband(leftDrivePower));
    		  motorSet(RIGHTDRIVE, -deadband(rightDrivePower));
 
-   		  //lcdPrint(LCDSCREEN, 1, "Left error: %f", left_wheels.error);  //Prints error to LCD
+   		  //lcdPrint(LCDSCREEN, 1, "Drive: %d", drive_position.actual);  //Prints error to LCD
       } else {
         lastPosition = currentPosition;
         currentPosition = encoderGet(driveEncoder);
@@ -191,11 +198,11 @@ void driveAuto(void * parameter){ //Drive state task
         if(abs(drive_velocity.output_power < 127)){
           drive_velocity.integral += drive_velocity.error;  //Integral term
         }
-        if(abs(drive_velocity.error) < 20){
+        if(abs(drive_velocity.error) < 10){
           drive_velocity.integral = 0;
         }
 
-        drive_velocity.output_power = drive_velocity.Kp * drive_velocity.error + drive_velocity.Ki\
+        drive_velocity.output_power += drive_velocity.Kp * drive_velocity.error + drive_velocity.Ki\
          * drive_velocity.integral - drive_velocity.Kd * drive_velocity.derivative;
 
         // if(drive_velocity.output_power > 127){
@@ -225,15 +232,12 @@ void driveAuto(void * parameter){ //Drive state task
 
         motorSet(LEFTDRIVE, -deadband(leftDrivePower));
         motorSet(RIGHTDRIVE, -deadband(rightDrivePower));
-
-
-
       }
 		} else {
       //If only turning, not moving forward
 
-			motorSet(LEFTDRIVE, deadband(drive_turn.output_power));
- 		  motorSet(RIGHTDRIVE, -deadband(drive_turn.output_power));
+			motorSet(LEFTDRIVE, -deadband(drive_turn.output_power));
+ 		  motorSet(RIGHTDRIVE, deadband(drive_turn.output_power));
 
  		  //lcdPrint(LCDSCREEN, 1, "Gyro error: %f", drive_turn.error);
 		}
@@ -249,7 +253,7 @@ void clockAuto(void * parameter){  //Time to complete a task after which point t
 	    while(cancelAfter > 0){
 	      delay(20);
 	      cancelAfter -= 20;
-        lcdPrint(LCDSCREEN, 2, "%d", cancelAfter);
+        //lcdPrint(LCDSCREEN, 2, "%d", cancelAfter);
 	    }
 	    if(cancelAfter <= 0){
 	      autonRunning = 0;
@@ -344,15 +348,15 @@ void autonomous() {
 
     mogoPosition = 1; //puts out mobile goal lift
 
-    delay(600);
+    delay(400);
 
     four_bar.target = STACKANGLE;
 
-    drive(2005, 1800, 3000);  //Drives toward mobile goal
+    drive(750, 100, 3000);  //Drives toward mobile goal
 
     mogoPosition = 0;  //Picks up mobile goal
 
-    delay(1500);
+    delay(1200);
 
     lift((MOGOHEIGHT - 10), 100, 1000);
     shouldDrop = 1;
@@ -370,7 +374,7 @@ void autonomous() {
     //shouldDrop = 1;  //Drops cone
     //delay(300);
 
-    drive(-1200, 2000, 3500);
+    drive(-500, 000, 3500);
 
     if(autonVariation == 1){  //5pt zone L
       turn(-195, 000, 4000);  //turns around
@@ -445,7 +449,7 @@ void autonomous() {
     delay(15000);
     break;
     case 3 :
-    drive(4000, 6000, 10000);  //Drive forward
+    drive(1500, 6000, 10000);  //Drive forward
 
     delay(15000);
     break;
