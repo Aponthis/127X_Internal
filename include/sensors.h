@@ -4,7 +4,8 @@
 
 #define GYRO 2  //Port of gyroscope
 
-#define SHIFTPOT 3
+#define SHIFTPOT 4
+#define SIGNALWIRE 5
 
 //Digital sensors...
 #define LCDSCREEN uart1

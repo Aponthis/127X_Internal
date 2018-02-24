@@ -1,7 +1,7 @@
 
 #include "main.h"
 
-int8_t deadband(int8_t value){
+int deadband(int value){
  if(value > 0){
     if (abs(value) > 120){
       value = 127;

@@ -36,7 +36,6 @@ void manualLift(){
     motorSet(RIGHTLIFT1, 0);
     motorSet(RIGHTLIFT2, 0);
   }
-  lcdPrint(LCDSCREEN, 1, "Pot: %d ", analogRead(SHIFTPOT));
   lcdPrint(LCDSCREEN, 2, "Cones: %d", stackedCones);
 }
 
@@ -60,7 +59,7 @@ void dr4bLift(){
     }
   }
 
-  //lcdPrint(LCDSCREEN, 1, "Error: %f", dr4b.error);
+  lcdPrint(LCDSCREEN, 1, "Lift: %d", dr4b.actual);
   //lcdPrint(LCDSCREEN, 2, "Power: %d", dr4b.output_power);
   if(((coneMode) || mogoProtocol) && isOpControl){  //previously had safe angle
     safeAngle = 1;

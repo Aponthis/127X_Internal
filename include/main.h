@@ -29,6 +29,8 @@ TaskHandle fourBarAutoTask;
 TaskHandle rollerAutoTask;
 
 Gyro gyro;
+Gyro gyro2;
+Gyro gyro3;
 
 extern bool mogoProtocol;
 extern bool coneMode;

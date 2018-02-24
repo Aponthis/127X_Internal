@@ -10,9 +10,10 @@
 
 extern uint8_t stackedCones;
 extern bool shouldDrop;
+extern bool isOpControl;
 
 void driveTask(void * parameter){ //Sets drive motors' power
-while(1){
+	while(isOpControl){
 		motorSet(LEFTDRIVE, -deadband(joystickGetAnalog(1, 3)));
 		motorSet(RIGHTDRIVE, -deadband(joystickGetAnalog(1, 2)));
 		delay(20); //Save processing power
@@ -26,7 +27,7 @@ bool button4Pressed = 0;
 bool manualMode = 0;
 extern PID dr4b;
 extern uint8_t stackedCones;
-extern bool isOpControl;
+
 
 void liftTask(void * parameter){  //Task for lift
 	while(1){

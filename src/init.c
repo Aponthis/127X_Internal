@@ -20,10 +20,18 @@ void initialize() {
   mogoEncoder = encoderInit(MOGOTOPPORT, MOGOBOTTOMPORT, true);
   driveEncoder = encoderInit(DRIVETOP, DRIVEBOTTOM, false);
   encoderReset(driveEncoder);
-  gyro = gyroInit(GYRO, 392);  //720 ticks is a rotation
+  gyro = gyroInit(GYRO, 196);  //392 before
 
   lcdInit(LCDSCREEN);  //LCD initialization
   lcdSetBacklight(LCDSCREEN, true);
+
+  while(analogRead(SIGNALWIRE) < 500){
+    lcdPrint(LCDSCREEN, 1, "CHECK EXPANDER");
+    if(lcdReadButtons(LCDSCREEN) > 0){
+      break;
+    }
+    delay(20);
+  }
 
   autonSelect();  //Defined in own file
 

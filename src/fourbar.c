@@ -31,8 +31,9 @@ void fourBar(){
     lcdPrint(LCDSCREEN, 1, "4bar: %d", four_bar.actual);
     lcdPrint(LCDSCREEN, 2, "Target: %d", four_bar.target);
   }
-
-  four_bar.actual = analogRead(SHIFTPOT);
+//  if(analogRead(SHIFTPOT) > 500){ //filters trash values
+    four_bar.actual = analogRead(SHIFTPOT);
+//  }
   //four_bar.actual = encoderGet(shiftEncoder);
   four_bar.previous_error = four_bar.error;
   four_bar.error = four_bar.target - four_bar.actual;  //Proportional term

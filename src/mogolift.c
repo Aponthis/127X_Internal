@@ -36,9 +36,9 @@ void mogoLift(){
     } else if (mogoMeasure > (MOGOBOTTOM + 100)){
       motorSet(MOGOLIFT, -40);
     } else if (mogoMeasure > MOGOBOTTOM){
-      motorSet(MOGOLIFT, -10);
+      motorSet(MOGOLIFT, -15);
     } else {
-      motorSet(MOGOLIFT, -5);
+      motorSet(MOGOLIFT, -10);
     }
   }
 }
