@@ -4,7 +4,7 @@
 
 #define MAINPAGE1 1 //Front page of LCD screen
 #define MAINPAGE2 1
-#define MAXPAGES1 4 //Highest page number
+#define MAXPAGES1 6 //Highest page number
 uint8_t maxPages2 = 4;
 
 char line1Text[17]; //Text on first line
@@ -77,7 +77,7 @@ void autonSelect(){
       }
       if (lcdReadButtons(LCDSCREEN) == 2){ //If middle button is pressed
         autonVariation = lcdPage2Number; //select auton variant
-        Gyro gyro = gyroInit(GYRO, 0);
+        Gyro gyro = gyroInit(GYRO, 196);  /////////////////////////////////////////////Changed this value from 0
         delay(500);
         gyroReset(gyro);
         if(lcdReadButtons(LCDSCREEN) == 2){  //If holding button
@@ -112,7 +112,7 @@ void autonSelect(){
       maxPages2 = 4;
       break;
       case 2 :  //2nd auton
-      strcpy(line1Text, "Mogo w/ Cone");
+      strcpy(line1Text, "Mogo, 1c");
       switch(lcdPage2Number){
         case 1 :  //First variation
         strcpy(line2Text, "5pt Zone L");
@@ -156,14 +156,58 @@ void autonSelect(){
       }
       maxPages2 = 5;
       break;
-      case 4 :  //4th auton
-      strcpy(line1Text, "Wait");
+
+      case 4 :  //Mogo with two cones
+      strcpy(line1Text, "Mogo, 2c");
       switch(lcdPage2Number){
-        case 1 :
-        strcpy(line2Text, "Do nothing");
+        case 1 :  //First variation
+        strcpy(line2Text, "5pt Zone L");
+        break;
+        case 2 :
+        strcpy(line2Text, "5pt Zone R");
+        break;
+        case 3 :
+        strcpy(line2Text, "10pt Zone L");
+        break;
+        case 4 :
+        strcpy(line2Text, "10pt Zone R");
+        break;
+        case 5 :
+        strcpy(line2Text, "20pt Zone L");
+        break;
+        case 6 :
+        strcpy(line2Text, "20pt Zone R");
         break;
       }
-      maxPages2 = 1;
+      maxPages2 = 6;
+      break;
+
+      case 5:  //Mogo with three cones
+      strcpy(line1Text, "Mogo, 3c");
+      switch(lcdPage2Number){
+        case 1 :  //First variation
+        strcpy(line2Text, "5pt Zone L");
+        break;
+        case 2 :
+        strcpy(line2Text, "5pt Zone R");
+        break;
+        case 3 :
+        strcpy(line2Text, "10pt Zone L");
+        break;
+        case 4 :
+        strcpy(line2Text, "10pt Zone R");
+        break;
+        case 5 :
+        strcpy(line2Text, "20pt Zone L");
+        break;
+        case 6 :
+        strcpy(line2Text, "20pt Zone R");
+        break;
+      }
+
+      case 6: //Wait
+      strcpy(line1Text, "Do nothing");
+        strcpy(line2Text, "You suck!");
       break;
     }
 

@@ -363,7 +363,7 @@ void autonomous() {
 
       drive(-800, 400, 3000);
 
-      delay(15000);
+      delay(10000);
     } else if (autonVariation == 3){
 
       drive(-800, 1000, 3000);
@@ -382,7 +382,7 @@ void autonomous() {
     }
 
     break;
-    delay(15000);
+    delay(10000);
     break;
     case 2 :  //Mogo with cone  ------------------------------------------------------------------------------------------------
 
@@ -524,18 +524,23 @@ void autonomous() {
       fullPower = 0;
 
     }
-    delay(15000);
+    delay(5000);
     break;
     case 3 :  //Charge auton
     driveImprecise(1500, 6000, 10000);  //Drive forward
 
-    delay(15000);
+    delay(5000);
     break;
-    case 4 :
-    delay(15000);
+    case 4 :  //Mogo with two cones
+
+
+    delay(5000);
     break;
-    case 5 :
-    delay(15000);
+    case 5 :  //Mogo with three cones
+    delay(5000);
+    break;
+    case 6:
+    delay(15000);  //Do nothing
     break;
   }
 
