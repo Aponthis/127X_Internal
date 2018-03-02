@@ -59,7 +59,7 @@ void dr4bLift(){
     }
   }
 
-  lcdPrint(LCDSCREEN, 1, "Lift: %d", dr4b.actual);
+  lcdPrint(LCDSCREEN, 1, "Gyro: %d", gyroGet(gyro));
   //lcdPrint(LCDSCREEN, 2, "Power: %d", dr4b.output_power);
   if(((coneMode) || mogoProtocol) && isOpControl){  //previously had safe angle
     safeAngle = 1;

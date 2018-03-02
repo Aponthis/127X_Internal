@@ -103,13 +103,19 @@ void autonSelect(){
         strcpy(line2Text, "Wait & 1");
         break;
         case 3 :
-        strcpy(line2Text, "1 Cone, Park Right");
+        strcpy(line2Text, "Cone & Charge L");
         break;
         case 4 :
-        strcpy(line2Text, "2 Cones, Right");
+        strcpy(line2Text, "Cone & Charge R");
+        break;
+        case 5 :
+        strcpy(line2Text, "L Juke&Cone");
+        break;
+        case 6 :
+        strcpy(line2Text, "R Juke&Cone");
         break;
       }
-      maxPages2 = 4;
+      maxPages2 = 6;
       break;
       case 2 :  //2nd auton
       strcpy(line1Text, "Mogo, 1c");

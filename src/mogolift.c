@@ -27,7 +27,7 @@ void mogoLift(){
     } else if (mogoMeasure < (MOGOTOP - 1)){
       motorSet(MOGOLIFT, 20);
     } else {
-      motorSet(MOGOLIFT, 15);
+      motorSet(MOGOLIFT, 18);
     }
   }
   if(mogoPosition == 1){  //Attempts to acquire bottom position

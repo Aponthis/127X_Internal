@@ -47,16 +47,13 @@ void operatorControl() {
 		taskSuspend(liftAutoTask);
 	}
 	if(clockAutoTask != NULL){
-		taskSuspend(liftAutoTask);
+		taskSuspend(clockAutoTask);
 	}
 	if(driveAutoTask != NULL){
 		taskSuspend(driveAutoTask);
 	}
 	if(fourBarAutoTask != NULL){
 		taskSuspend(fourBarAutoTask);
-	}
-	if(rollerAutoTask != NULL){
-		taskSuspend(rollerAutoTask);
 	}
 	if(mogoAutonomousTask != NULL){
 		taskSuspend(mogoAutonomousTask);

@@ -110,7 +110,15 @@ void roller(){
   }
 
   if(shouldStack && (four_bar.actual > STACKANGLE - 700) && isOpControl){
-    delay(430);
+    delay(230);
+
+    if(stackedCones > 5){
+      delay(100);  //gives extra time for large stack to settle
+    }
+    if(stackedCones > 9){
+      delay(100);
+    }
+
     shouldDrop = 1;
   }
   if(mogoProtocol && !(joystickGetDigital(1, 7, JOY_DOWN))){
@@ -130,6 +138,7 @@ void roller(){
       if(stackedCones == 13){
         mogoProtocol = 1;
       }
+      autoloaderMode = 1;
     }
   }
    else if(coneMode == 0){
