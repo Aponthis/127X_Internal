@@ -63,15 +63,26 @@ void drive(int targetValue, int delayAfterward, int cancelTime){
   driveOrTurn = 0;
 
   drive_position.target = targetValue;
-  canCancel = 1;
-  cancelAfter = cancelTime;
+  //canCancel = 1;
+  //cancelAfter = cancelTime;
+  int loopQuantity = cancelTime / 20;
   delay(200);
-    while(abs(drive_position.target - encoderGet(driveEncoder)) > 80){
+  while(abs(drive_position.target - encoderGet(driveEncoder)) > 80){
      delay(20);
-   }
-   delay(150);
+     loopQuantity -=1;
+     if(loopQuantity < 1){
+       taskSuspend(liftAutoTask);
+       taskSuspend(driveAutoTask);
+       taskSuspend(clockAutoTask);
+       taskSuspend(mogoAutonomousTask);
+       taskSuspend(fourBarAutoTask);
+       motorStopAll();
+       delay(15000);
+     }
+  }
+  delay(150);
 
-  canCancel = 0;
+  //canCancel = 0;
   delay(delayAfterward);
 
 }
@@ -83,15 +94,26 @@ void driveImprecise(int targetValue, int delayAfterward, int cancelTime){
   driveOrTurn = 0;
 
   drive_position.target = targetValue;
-  canCancel = 1;
-  cancelAfter = cancelTime;
+  //canCancel = 1;
+  //cancelAfter = cancelTime;
+  int loopQuantity = cancelTime / 20;
   delay(200);
-    while(abs(drive_position.target - encoderGet(driveEncoder)) > 550){
-     delay(20);
+  while(abs(drive_position.target - encoderGet(driveEncoder)) > 550){
+   delay(20);
+   loopQuantity -=1;
+   if(loopQuantity < 1){
+     taskSuspend(liftAutoTask);
+     taskSuspend(driveAutoTask);
+     taskSuspend(clockAutoTask);
+     taskSuspend(mogoAutonomousTask);
+     taskSuspend(fourBarAutoTask);
+     motorStopAll();
+     delay(15000);
    }
-   delay(450);
+ }
+ delay(450);
 
-  canCancel = 0;
+  //canCancel = 0;
   delay(delayAfterward);
 
 }
@@ -99,12 +121,23 @@ void driveImprecise(int targetValue, int delayAfterward, int cancelTime){
 void turn(int targetDegrees, int delayAfterward, int cancelTime){
 		driveOrTurn = 1;
 		drive_turn.target = targetDegrees;
-	  canCancel = 1;
-	  cancelAfter = cancelTime;
+	  //canCancel = 1;
+	  //cancelAfter = cancelTime;
+    int loopQuantity = cancelTime / 20;
 	  while(abs(drive_turn.target - drive_turn.actual) > 2){
       delay(20);
+      loopQuantity -=1;
+      if(loopQuantity < 1){
+        taskSuspend(liftAutoTask);
+        taskSuspend(driveAutoTask);
+        taskSuspend(clockAutoTask);
+        taskSuspend(mogoAutonomousTask);
+        taskSuspend(fourBarAutoTask);
+        motorStopAll();
+        delay(15000);
+      }
     }
-	  canCancel = 0;
+	  //canCancel = 0;
 	  delay(delayAfterward);
 }
 
@@ -164,7 +197,7 @@ void driveAuto(void * parameter){ //Drive state task
   	    drive_position.previous_error = drive_position.error;
   	    drive_position.error = drive_position.target - drive_position.actual;  //Proportional term
   	    drive_position.derivative = drive_position.previous_error - drive_position.error;  //Derivative term
-  	    if(abs(drive_position.output_power < 127)){
+  	    if(abs(drive_position.output_power) < 127){
   	      drive_position.integral += drive_position.error;  //Integral term
   	    }
   	    if(abs(drive_position.error) < 40){
@@ -208,8 +241,10 @@ void driveAuto(void * parameter){ //Drive state task
           rightDrivePower = -127;
         }
 
-  			motorSet(LEFTDRIVE, -deadband(leftDrivePower));
-   		  motorSet(RIGHTDRIVE, -deadband(rightDrivePower));
+  			motorSet(LEFTDRIVE1, -deadband(leftDrivePower));
+        motorSet(LEFTDRIVE2, -deadband(leftDrivePower));
+   		  motorSet(RIGHTDRIVE1, -deadband(rightDrivePower));
+   		  motorSet(RIGHTDRIVE2, -deadband(rightDrivePower));
 
    		  //lcdPrint(LCDSCREEN, 1, "Drive: %d", drive_position.actual);  //Prints error to LCD
       } else {
@@ -222,7 +257,7 @@ void driveAuto(void * parameter){ //Drive state task
         drive_velocity.previous_error = drive_velocity.error;
         drive_velocity.error = drive_velocity.target - drive_velocity.actual;  //Proportional term
         drive_velocity.derivative = drive_velocity.previous_error - drive_velocity.error;  //Derivative term
-        if(abs(drive_velocity.output_power < 127)){
+        if(abs(drive_velocity.output_power) < 127){
           drive_velocity.integral += drive_velocity.error;  //Integral term
         }
         if(abs(drive_velocity.error) < 10){
@@ -265,15 +300,19 @@ void driveAuto(void * parameter){ //Drive state task
           rightDrivePower = -127;
         }
 
-        motorSet(LEFTDRIVE, -deadband(leftDrivePower));
-        motorSet(RIGHTDRIVE, -deadband(rightDrivePower));
+        motorSet(LEFTDRIVE1, -deadband(leftDrivePower));
+        motorSet(LEFTDRIVE2, -deadband(leftDrivePower));
+        motorSet(RIGHTDRIVE1, -deadband(rightDrivePower));
+        motorSet(RIGHTDRIVE2, -deadband(rightDrivePower));
       }
 		} else {
       //If only turning, not moving forward
 
       //lcdPrint(LCDSCREEN, 1, "Turning");
-			motorSet(LEFTDRIVE, (drive_turn.output_power));
- 		  motorSet(RIGHTDRIVE, -(drive_turn.output_power));
+			motorSet(LEFTDRIVE1, (drive_turn.output_power));
+      motorSet(LEFTDRIVE2, (drive_turn.output_power));
+ 		  motorSet(RIGHTDRIVE1, -(drive_turn.output_power));
+ 		  motorSet(RIGHTDRIVE2, -(drive_turn.output_power));
 
  		  //lcdPrint(LCDSCREEN, 1, "Gyro error: %f", drive_turn.error);
 		}
@@ -345,27 +384,29 @@ void autonomous() {
       turn(90, 500, 2000);
     }
 
-    lift(STATGO1, 200, 200, 1);
+    lift(STATGO2, 200, 1000, 1);
 
     if(autonVariation == 2){  //If waiting variant
       lift(STATGO2, 100, 1000, 1);
       delay(3000);  //Wait
     }
 
-    driveImprecise(1250, 0000, 5000);  //Drive toward statgo
+    driveImprecise(1250, 0300, 5000);  //Drive toward statgo
 
     four_bar.target = STATGOANGLE;
 
-    delay(1000);
+    delay(100);
 
-    lift(STATGO1 - 4, 300, 3000, 1);
+    lift(STATGO1 - 7, 300, 3000, 1);
 
     shouldDrop = 1;
 
-    delay(200);
+    delay(400);
 
     lift(STATGO2, 000, 3000, 1);
-
+    if(autonVariation == 5 || autonVariation == 6){
+      drive(-1000, 12000, 3000);
+    }
     if(autonVariation == 1 || autonVariation == 2){
 
       delay(200);
@@ -382,13 +423,13 @@ void autonomous() {
 
       lift(MOGOHEIGHT, 000, 3000, 0);
 
-      driveImprecise(4500, 1000, 6000);
+      driveImprecise(4800, 1000, 6000);
     } else if (autonVariation == 4){  //Charging right
       turn(-80, 000, 2000);
 
       lift(MOGOHEIGHT, 000, 3000, 0);
 
-      driveImprecise(4000, 1000, 6000);
+      driveImprecise(4800, 1000, 6000);
     }
 
     break;
@@ -406,11 +447,11 @@ void autonomous() {
 
     four_bar.target = STACKANGLE;
 
-    drive(3100, 000, 3000);  //Drives toward mobile goal
+    drive(3100, 000, 4000);  //Drives toward mobile goal
 
     mogoPosition = 0;  //Picks up mobile goal
 
-    delay(800);
+    delay(1000);
 
     lift((MOGOHEIGHT - 10), 100, 1000, 1);
 
@@ -469,7 +510,7 @@ void autonomous() {
       mogoPosition = 1; //extends mobile goal lift
       delay(1100);
 
-      drive(-1000, 2000, 6000);  //drives away
+      drive(-1000, 2000, 3000);  //drives away
     } else if (autonVariation == 4){  //10pt zone R
       drive(-2800, 000, 3500);
 
@@ -494,7 +535,7 @@ void autonomous() {
 
       turn(135, 200, 1500);
 
-      driveImprecise(500, 000, 3000);  //Drives to bar
+      driveImprecise(500, 000, 2000);  //Drives to bar
 
       fullPower = 1;
       driveImprecise(400, 0, 1000); //Drives over bar
@@ -535,14 +576,14 @@ void autonomous() {
     delay(5000);
     break;
     case 3 :  //Charge auton
-    driveImprecise(4500, 6000, 10000);  //Drive forward
+    driveImprecise(4800, 500, 6000);  //Drive forward
 
     break;
 
     case 4 :  //Mogo with two cones  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     shouldStack = 1;
-    lift(MOGOHEIGHT, 000, 2500, 1);  //Bring lift up to get out of way for mobile goal lift
+    lift(MOGOHEIGHT+3, 000, 2500, 1);  //Bring lift up to get out of way for mobile goal lift
     four_bar.target = STATGOANGLE;
 
     mogoPosition = 1; //puts out mobile goal lift
@@ -551,11 +592,11 @@ void autonomous() {
 
     four_bar.target = STACKANGLE;
 
-    drive(2780, 000, 3000);  //Drives toward mobile goal
+    drive(2780, 000, 4000);  //Drives toward mobile goal
 
     mogoPosition = 0;  //Picks up mobile goal
 
-    delay(800);
+    delay(1000);
 
     lift((MOGOHEIGHT - 10), 100, 1000, 1);
 
@@ -585,7 +626,7 @@ void autonomous() {
 
       lift(MOGOHEIGHT + 3, 000, 3000, 0);
 
-      drive(-3700, 000, 3500);
+      drive(-3700, 000, 5000);
 
       turn(-195, 000, 4000);  //turns around
 
@@ -606,7 +647,7 @@ void autonomous() {
 
       lift(MOGOHEIGHT + 3, 000, 3000, 0);
 
-      drive(-3700, 000, 3500);
+      drive(-3700, 000, 5000);
 
       turn(195, 000, 4000);  //turns around
 
@@ -627,7 +668,7 @@ void autonomous() {
 
       lift(MOGOHEIGHT + 3, 000, 3000, 0);
 
-      drive(-3800, 000, 3500);
+      drive(-3800, 000, 5000);
 
       delay(400);
 
@@ -637,7 +678,7 @@ void autonomous() {
 
       delay(400);
 
-      driveImprecise(550, 500, 1000);
+      driveImprecise(700, 500, 1000);
 
       mogoPosition = 1; //extends mobile goal lift
       delay(1100);
@@ -648,7 +689,7 @@ void autonomous() {
 
       lift(MOGOHEIGHT + 3, 000, 3000, 0);
 
-      drive(-3600, 000, 3500);
+      drive(-3600, 000, 5000);
 
       turn(195, 100, 4000);  //turns around
 
@@ -661,11 +702,11 @@ void autonomous() {
       mogoPosition = 1; //extends mobile goal lift
       delay(1100);
 
-      drive(-1000, 2000, 6000);  //drives away
+      drive(-1000, 2000, 3000);  //drives away
     }
 
     if(autonVariation == 5){  //20 pt zone L
-      drive(-4100, 000, 3500);  //2950 for one cone
+      drive(-4100, 000, 5000);  //2950 for one cone
 
       lift(MOGOHEIGHT, 0, 1000, 0);
 
@@ -673,7 +714,7 @@ void autonomous() {
 
       four_bar.target = STACKANGLE;
 
-      drive(-800, 0, 3000);  //Drives parallel to bar
+      drive(-1000, 0, 3000);  //Drives parallel to bar
       shouldDrop = 1;
 
       turn(135, 100, 1500);
@@ -694,7 +735,7 @@ void autonomous() {
     }
 
     if(autonVariation == 6){  //20 pt zone R
-      drive(-3700, 000, 3500);
+      drive(-3700, 000, 5000);
 
       lift(MOGOHEIGHT, 0, 1000, 0);
 
@@ -702,7 +743,7 @@ void autonomous() {
 
       four_bar.target = STACKANGLE;
 
-      drive(-1300, 0, 3000);  //Drives parallel to bar
+      drive(-1450, 0, 3000);  //Drives parallel to bar
 
       turn(-135, 000, 1500);
 

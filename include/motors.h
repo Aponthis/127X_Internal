@@ -1,14 +1,20 @@
 #ifndef MOTORS_H_
 #define MOTORS_H_
 
-#define MOGOLIFT 6
-#define RIGHTLIFT1 3
-#define RIGHTLIFT2 8
-#define SHIFTER 4
-#define LEFTLIFT 5
-#define LEFTDRIVE 2
-#define RIGHTDRIVE 7
-#define ROLLER 9
+#define LEFTDRIVE1 1
+#define LEFTDRIVE2 2
 
+#define LEFTLIFT 3
+#define RIGHTLIFT 8
+
+#define ROLLER 4
+
+#define LEFTSHIFTER 6
+#define RIGHTSHIFTER 5
+
+#define MOGOLIFT 7
+
+#define RIGHTDRIVE1 10
+#define RIGHTDRIVE2 9
 
 #endif

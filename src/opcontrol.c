@@ -14,8 +14,10 @@ extern bool isOpControl;
 
 void driveTask(void * parameter){ //Sets drive motors' power
 	while(isOpControl){
-		motorSet(LEFTDRIVE, -deadband(joystickGetAnalog(1, 3)));
-		motorSet(RIGHTDRIVE, -deadband(joystickGetAnalog(1, 2)));
+		motorSet(LEFTDRIVE1, -deadband(joystickGetAnalog(1, 3)));
+		motorSet(LEFTDRIVE2, deadband(joystickGetAnalog(1, 3)));
+		motorSet(RIGHTDRIVE1, deadband(joystickGetAnalog(1, 2)));
+		motorSet(RIGHTDRIVE2, -deadband(joystickGetAnalog(1, 2)));
 		delay(20); //Save processing power
 	}
 }
@@ -31,12 +33,8 @@ extern uint8_t stackedCones;
 
 void liftTask(void * parameter){  //Task for lift
 	while(1){
-		if(manualMode){
-			manualLift();
-		} else {
-			dr4bLift();
-		}
-		fourBar();  //Calls fourBar() function
+		manualLift();
+		fourBar();
 		delay(20); //Save processing power
 	}
 }
@@ -59,11 +57,13 @@ void operatorControl() {
 		taskSuspend(mogoAutonomousTask);
 	}
 
-	taskCreate(driveTask, TASK_DEFAULT_STACK_SIZE, NULL, TASK_PRIORITY_DEFAULT);
-	taskCreate(liftTask, TASK_DEFAULT_STACK_SIZE, NULL, TASK_PRIORITY_DEFAULT);
 	isOpControl = 1;
 
-  digitalWrite(LIGHTS, HIGH);
+	taskCreate(driveTask, TASK_DEFAULT_STACK_SIZE, NULL, TASK_PRIORITY_DEFAULT);
+	taskCreate(liftTask, TASK_DEFAULT_STACK_SIZE, NULL, TASK_PRIORITY_DEFAULT);
+
+
+  //digitalWrite(LIGHTS, HIGH);
 	while (1) {
 		if(joystickGetDigital(1, 8, JOY_LEFT) && !button1Pressed){
 			manualMode = !manualMode;
