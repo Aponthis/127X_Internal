@@ -210,10 +210,24 @@ void autonSelect(){
         strcpy(line2Text, "20pt Zone R");
         break;
       }
+      break;
 
-      case 6: //Wait
-      strcpy(line1Text, "Do nothing");
-        strcpy(line2Text, "You suck!");
+      case 6: //Autoloader mogo
+      strcpy(line1Text, "Autoloader");
+      switch(lcdPage2Number){
+        case 1 :  //First variation
+        strcpy(line2Text, "5pt Zone L");
+        break;
+        case 2 :
+        strcpy(line2Text, "5pt Zone R");
+        break;
+        case 3 :
+        strcpy(line2Text, "10pt Zone L");
+        break;
+        case 4 :
+        strcpy(line2Text, "10pt Zone R");
+        break;
+      }
       break;
     }
 

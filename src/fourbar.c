@@ -21,21 +21,109 @@ bool isStacking; //Stores whether the four-bar has tried to go up, to avoid thro
 extern int8_t autoloaderMode;
 extern bool safeAngle;
 extern bool isOpControl;
+extern bool macroMode;
+extern int liftPower;
+int dr4bInitial;
+extern bool usingLoader; //if using autoloader or not
+int shifterPower;
 
 void fourBar(){
-  if(isOpControl){
-    motorSet(LEFTSHIFTER, -deadband(joystickGetAnalog(2, 2)));
-    motorSet(RIGHTSHIFTER, deadband(joystickGetAnalog(2, 2)));
-  } else {
-    if(joystickGetDigital(1, 7, JOY_UP)){
-      mogoProtocol = !mogoProtocol;
-      delay(300);
+  lcdPrint(LCDSCREEN, 1, "4bar: %d", analogRead(SHIFTPOT));
+  //lcdPrint(LCDSCREEN, 1, "pow: %d", shifterPower);
+  if(isOpControl && !macroMode){
+    shifterPower = deadband(joystickGetAnalog(2, 2));
+
+    if(encoderGet(liftEncoder) > 23 && (analogRead(SHIFTPOT) < 3000) && (shifterPower < 0)){
+      shifterPower = -5;
     }
 
-    if (lcdReadButtons(LCDSCREEN) == 1){
-      lcdPrint(LCDSCREEN, 1, "4bar: %d", four_bar.actual);
-      lcdPrint(LCDSCREEN, 2, "Target: %d", four_bar.target);
+    if(analogRead(SHIFTPOT) < 2000){
+      shifterPower -= 5;
+    } else if(analogRead(SHIFTPOT) > 2800){
+      shifterPower += 5;
     }
+    motorSet(LEFTSHIFTER, -shifterPower);
+    motorSet(RIGHTSHIFTER, shifterPower);
+  } else if (macroMode){ //macro routine
+    dr4bInitial = encoderGet(liftEncoder);
+    motorSet(ROLLER, -127);
+    if(dr4bInitial < 27){  //For low values
+      if(usingLoader){
+        while(encoderGet(liftEncoder) < 18){
+          liftPower = 105;
+          delay(20);
+          if(joystickGetDigital(2, 8, JOY_UP)){
+            break;
+          }
+        }
+        while(encoderGet(liftEncoder) < (dr4bInitial + 1)){
+          liftPower = 105;
+          delay(20);
+          if(joystickGetDigital(2, 8, JOY_UP)){
+            break;
+          }
+        }
+        // while(encoderGet(liftEncoder) < (dr4bInitial + 2)){
+        //   liftPower = 30;
+        //   delay(20);
+        //   if(joystickGetDigital(2, 8, JOY_UP)){
+        //     break;
+        //   }
+        // }
+      } else {
+        while(encoderGet(liftEncoder) < (dr4bInitial + 1)){
+          liftPower = 105;
+          delay(20);
+          if(joystickGetDigital(2, 8, JOY_UP)){
+            break;
+          }
+        }
+        // while(encoderGet(liftEncoder) < (dr4bInitial + 2)){
+        //   liftPower = 40;
+        //   delay(20);
+        //   if(joystickGetDigital(2, 8, JOY_UP)){
+        //     break;
+        //   }
+        // }
+      }
+    } else if (dr4bInitial < 50){
+      while(encoderGet(liftEncoder) < (dr4bInitial + 1)){
+        liftPower = 105;
+        delay(20);
+        if(joystickGetDigital(2, 8, JOY_UP)){
+          break;
+        }
+      }
+      // while(encoderGet(liftEncoder) < (dr4bInitial + 1)){
+      //   liftPower = 30;
+      //   delay(20);
+      //   if(joystickGetDigital(2, 8, JOY_UP)){
+      //     break;
+      //   }
+      // }
+    } else {
+      while(encoderGet(liftEncoder) < (dr4bInitial + 1)){
+        liftPower = 105;
+        delay(20);
+        if(joystickGetDigital(2, 8, JOY_UP)){
+          break;
+        }
+      }
+      // while(encoderGet(liftEncoder) < (dr4bInitial + 2)){
+      //   liftPower = 30;
+      //   delay(20);
+      //   if(joystickGetDigital(2, 8, JOY_UP)){
+      //     break;
+      //   }
+      // }
+    }
+    liftPower = -10;
+    motorSet(LEFTSHIFTER, -127);  //sends four-bar down
+    motorSet(RIGHTSHIFTER, 127);
+    delay(300);
+    macroMode = 0;
+    motorSet(ROLLER, 20);
+  } else {
   //  if(analogRead(SHIFTPOT) > 500){ //filters trash values
       four_bar.actual = analogRead(SHIFTPOT);
   //  }
@@ -64,22 +152,8 @@ void fourBar(){
     four_bar.output_power = four_bar.Kp * four_bar.error + four_bar.Ki * four_bar.integral +\
      four_bar.Kd * four_bar.derivative;
 
-    motorSet(LEFTSHIFTER, four_bar.output_power);
+    motorSet(LEFTSHIFTER, -four_bar.output_power);
     motorSet(RIGHTSHIFTER, four_bar.output_power);
-
-    if(isOpControl){
-      if((shouldStack && (((dr4b.actual - dr4b.target) > -3) || isStacking)) || \
-      (mogoProtocol && (dr4b.actual - dr4b.target) > - 3) || (mogoProtocol && (manualMode)) \
-      || (shouldStack && manualMode)){
-        four_bar.target = STACKANGLE;
-        isStacking = 1;
-      } else if (((shouldStack + coneMode == 0))  && \
-        ((dr4b.target == LIFTBOTTOM || manualMode) && (dr4b.actual < (4 + LIFTBOTTOM)))){
-        four_bar.target = PICKUPANGLE;
-      } else {
-        four_bar.target = HOLDANGLE;
-      }
-    }
 
     // if(coneMode == 0){  //If not holding a cone
     //   if(mogoProtocol){
@@ -100,70 +174,47 @@ void fourBar(){
 
 bool shouldDrop = 0;
 
+bool button6Pressed = 0;
+bool button7Pressed = 0;
+
 void roller(){
-  if(isOpControl){
+  if(isOpControl && !macroMode){
     if(joystickGetDigital(2, 6, JOY_UP)){
+      button6Pressed = 1;
+    }
+
+    if(button6Pressed && joystickGetDigital(2, 6, JOY_UP)){
       motorSet(ROLLER, 127);
-    } else if (joystickGetDigital(2, 6, JOY_DOWN)){
-      motorSet(ROLLER, -127);
-    } else {
+    } else if (button6Pressed) {
+      delay(0);
       motorSet(ROLLER, 20);
-    }
-  } else {
-    if(!digitalRead(BUMPER) & !coneMode){  //Converts input to 1 for if cone is held, 0 if not
-      coneMode = 1;
+      button6Pressed = 0;
     }
 
-    if(joystickGetDigital(1, 6, JOY_UP)){  //Going up to stack
-      if(coneMode == 1){
-        shouldStack = 1;
-      }
-    } else if (joystickGetDigital(1, 6, JOY_DOWN)){  //Going down
-      shouldStack = 0;
-      mogoProtocol = 0;
-      isStacking = 0;
-      autoloaderMode = 0;
-      safeAngle = 0;
+    if(joystickGetDigital(2, 6, JOY_DOWN)){
+      button7Pressed = 1;
     }
 
-    if(shouldStack && (four_bar.actual > STACKANGLE - 700) && isOpControl){
-      delay(230);
-
-      if(stackedCones > 5){
-        delay(000);  //gives extra time for large stack to settle
-      }
-      if(stackedCones > 8){
-        delay(100);
-      }
-
-      shouldDrop = 1;
-    }
-    if(mogoProtocol && !(joystickGetDigital(1, 7, JOY_DOWN))){
-      motorSet(ROLLER, 0);
-    } else if(shouldDrop){  //Drop cone
+    if(button7Pressed && joystickGetDigital(2, 6, JOY_DOWN)){
       motorSet(ROLLER, -127);
-      delay(300);  //Enough time for cone to be totally removed
-      motorSet(ROLLER, 0);
-      coneMode = 0;
-      if(isOpControl){
-        isStacking = 0;
-        safeAngle = 0;
-        if(shouldStack){
-          stackedCones +=1;
-        }
-        shouldStack = 0;
-        if(stackedCones == 13){
-          mogoProtocol = 1;
-        }
-        if(autoloaderMode == 0){
-          autoloaderMode = 1;
-        }
-      }
+    } else if (button7Pressed) {
+      delay(400);
+      motorSet(ROLLER, 20);
+      button7Pressed = 0;
     }
-     else if(coneMode == 0){
-      motorSet(ROLLER, 127);  //Intake
+
+  } else if (macroMode){
+    //does not assign a power to the roller
+  } else {
+    if(shouldDrop){
+      motorSet(ROLLER, -127);
+      delay(900);
+      shouldDrop = 0;
+    } else if (analogRead(SHIFTPOT) > (PICKUPANGLE - 200)){
+      motorSet(ROLLER, 127); //if down to pick up, intake!
     } else {
-      motorSet(ROLLER, 35);
+      motorSet(ROLLER, 25);
     }
+
   }
 }

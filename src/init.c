@@ -13,12 +13,11 @@ void initialize() {
 
   analogCalibrate(SHIFTPOT);
 
-  pinMode(BUMPER, INPUT);
   pinMode(LIGHTS, OUTPUT);
 
-  liftEncoder = encoderInit(LIFTTOPPORT, LIFTBOTTOMPORT, true);
+  liftEncoder = encoderInit(LIFTTOPPORT, LIFTBOTTOMPORT, false);
   mogoEncoder = encoderInit(MOGOTOPPORT, MOGOBOTTOMPORT, true);
-  driveEncoder = encoderInit(DRIVETOP, DRIVEBOTTOM, false);
+  driveEncoder = encoderInit(DRIVETOP, DRIVEBOTTOM, true);
   encoderReset(driveEncoder);
   gyro = gyroInit(GYRO, 196);  //392 before
 

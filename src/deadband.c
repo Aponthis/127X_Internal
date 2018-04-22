@@ -4,7 +4,7 @@
 int deadband(int value){
  if(value > 0){
     if (abs(value) > 120){
-      value = 127;
+      value = 105;
     } else if (abs(value) > 110){
       value = 100;
     } else if (abs(value) > 100){
