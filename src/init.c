@@ -13,13 +13,13 @@ void initialize() {
 
   analogCalibrate(SHIFTPOT);
 
-  pinMode(LIGHTS, OUTPUT);
-
   liftEncoder = encoderInit(LIFTTOPPORT, LIFTBOTTOMPORT, false);
-  mogoEncoder = encoderInit(MOGOTOPPORT, MOGOBOTTOMPORT, true);
   driveEncoder = encoderInit(DRIVETOP, DRIVEBOTTOM, true);
-  encoderReset(driveEncoder);
-  gyro = gyroInit(GYRO, 196);  //392 before
+
+  leftEncoder = encoderInit(LEFTTOPPORT, LEFTBOTTOMPORT, true);
+  rightEncoder = encoderInit(RIGHTTOPPORT, RIGHTBOTTOMPORT, true);
+
+  gyro = gyroInit(GYRO, 196);
 
   lcdInit(LCDSCREEN);  //LCD initialization
   lcdSetBacklight(LCDSCREEN, true);
@@ -31,6 +31,11 @@ void initialize() {
     }
     delay(20);
   }
+
+
+  Gyro gyro = gyroInit(GYRO, 196);  /////////////////////////////////////////////Changed this value from 0
+  delay(500);
+  gyroReset(gyro);
 
   autonSelect();  //Defined in own file
 

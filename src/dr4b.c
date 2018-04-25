@@ -11,7 +11,7 @@ int8_t autoloaderMode = 0; //0 if not using autoloader and down, 1 if raised sli
 bool safeAngle = 0;  //If chain bar has achieved safe angle
 
 PID dr4b = { //Sets values for lift PID
-  .Kp = 4.9, .Ki = 0.030, .Kd = 0.85, .error = 0, .previous_error = 0, .integral = 0,  //3.5 .11 2.7
+  .Kp = 2.2, .Ki = 0.002, .Kd = 0.35, .error = 0, .previous_error = 0, .integral = 0,  //3.5 .11 2.7
   .derivative = 0, .target = LIFTBOTTOM, .actual = LIFTBOTTOM, .output_power = 0
 };
 
@@ -20,12 +20,16 @@ extern bool macroMode;
 int liftPower;
 
 void manualLift(){
-  lcdPrint(LCDSCREEN, 2, "Lift at %d", encoderGet(liftEncoder));
+//  lcdPrint(LCDSCREEN, 2, "Lift at %d", encoderGet(liftEncoder));
   motorSet(RIGHTLIFT, -liftPower);
   motorSet(LEFTLIFT, liftPower);
 
   if(!macroMode){
-    liftPower = deadband(joystickGetAnalog(2, 3));
+    if((deadband(joystickGetAnalog(2, 3)) == 0) && (encoderGet(liftEncoder) < 6) && (analogRead(SHIFTPOT) > (PICKUPANGLE - 300))){
+      liftPower = -10;
+    } else {
+      liftPower = deadband(joystickGetAnalog(2, 3));
+    }
   } else {
     //do not give motors specific value
   }
@@ -42,7 +46,7 @@ void dr4bLift(){
   if(abs(dr4b.error) < 2){
     dr4b.integral = 0;
   }
-  if(abs(dr4b.error) > 8){
+  if(abs(dr4b.error) > 5){
     if (dr4b.integral > 200){
       dr4b.integral = 200;
     } else if (dr4b.integral < -200){

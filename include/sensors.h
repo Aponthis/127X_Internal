@@ -18,10 +18,11 @@
 #define LIFTTOPPORT 2
 #define LIFTBOTTOMPORT 3
 
-#define MOGOTOPPORT 7
-#define MOGOBOTTOMPORT 8
+#define LEFTTOPPORT 5
+#define LEFTBOTTOMPORT 6
 
-#define LIGHTS 2
+#define RIGHTTOPPORT 7
+#define RIGHTBOTTOMPORT 8
 
 #define DRIVETOP 11  //Quadrature encoder ports
 #define DRIVEBOTTOM 12

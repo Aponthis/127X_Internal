@@ -77,9 +77,6 @@ void autonSelect(){
       }
       if (lcdReadButtons(LCDSCREEN) == 2){ //If middle button is pressed
         autonVariation = lcdPage2Number; //select auton variant
-        Gyro gyro = gyroInit(GYRO, 196);  /////////////////////////////////////////////Changed this value from 0
-        delay(500);
-        gyroReset(gyro);
         if(lcdReadButtons(LCDSCREEN) == 2){  //If holding button
           delay(500);
           if(lcdReadButtons(LCDSCREEN) == 2){  //If still holding button
@@ -210,24 +207,13 @@ void autonSelect(){
         strcpy(line2Text, "20pt Zone R");
         break;
       }
+      maxPages2 = 6;
       break;
 
       case 6: //Autoloader mogo
-      strcpy(line1Text, "Autoloader");
-      switch(lcdPage2Number){
-        case 1 :  //First variation
-        strcpy(line2Text, "5pt Zone L");
-        break;
-        case 2 :
-        strcpy(line2Text, "5pt Zone R");
-        break;
-        case 3 :
-        strcpy(line2Text, "10pt Zone L");
-        break;
-        case 4 :
-        strcpy(line2Text, "10pt Zone R");
-        break;
-      }
+      strcpy(line1Text, "Mogo, 4c");
+      strcpy(line2Text, "Keep It");
+      maxPages2 = 1;
       break;
     }
 

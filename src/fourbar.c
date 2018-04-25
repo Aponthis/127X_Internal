@@ -28,19 +28,18 @@ extern bool usingLoader; //if using autoloader or not
 int shifterPower;
 
 void fourBar(){
-  lcdPrint(LCDSCREEN, 1, "4bar: %d", analogRead(SHIFTPOT));
   //lcdPrint(LCDSCREEN, 1, "pow: %d", shifterPower);
   if(isOpControl && !macroMode){
     shifterPower = deadband(joystickGetAnalog(2, 2));
 
-    if(encoderGet(liftEncoder) > 23 && (analogRead(SHIFTPOT) < 3000) && (shifterPower < 0)){
-      shifterPower = -5;
-    }
+    // if(encoderGet(liftEncoder) > 23 && (analogRead(SHIFTPOT) < 3000) && (shifterPower < 0)){
+    //   shifterPower = -5;
+    // }
 
     if(analogRead(SHIFTPOT) < 2000){
-      shifterPower -= 5;
+      shifterPower -= 12;
     } else if(analogRead(SHIFTPOT) > 2800){
-      shifterPower += 5;
+      shifterPower += 12;
     }
     motorSet(LEFTSHIFTER, -shifterPower);
     motorSet(RIGHTSHIFTER, shifterPower);

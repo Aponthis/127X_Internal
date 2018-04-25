@@ -16,12 +16,12 @@
 
 //Autonomous values
 
-#define MOGOHEIGHT 31 //Height to remove lift from way of mobile goal mechanism
+#define MOGOHEIGHT 33 //Height to remove lift from way of mobile goal mechanism
 #define DROPHEIGHT 5
 #define LOADERHEIGHT 26
 
-#define STATGO1 46  //Height to stack 1st statgo cone (currently a guesstimate)
-#define STATGO2 49  //Height to stack 2nd statgo cone
+#define STATGO1 44  //Height to stack 1st statgo cone (currently a guesstimate)
+#define STATGO2 47  //Height to stack 2nd statgo cone
 #define STATGO3 51  //Height to stack 3rd statgo cone
 #define LIFTTOP 80  //Height to max out lift
 #define LIFTBOTTOM 0  //

@@ -36,22 +36,20 @@ void mogoLift(){
     if(!positionAcquired){
       if(mogoPosition == 1){  //mogo lift is meant to be out
         motorSet(MOGOLIFT, -127);
-        delay(1450);
+        delay(1550);
         upOrDown = 1;
         positionAcquired = 1;
       } else if (mogoPosition == 0){
         motorSet(MOGOLIFT, 127);
-        delay(1300);
+        delay(1400);
         upOrDown = 0;
         positionAcquired = 1;
       }
     } else {
       if(upOrDown) {
         motorSet(MOGOLIFT, -20);
-      } else if(joystickGetAnalog(2, 2) < -40) {
-        motorSet(MOGOLIFT, 55);
-      } else {
-        motorSet(MOGOLIFT, 25);
+      }  else {
+        motorSet(MOGOLIFT, 20);
       }
     }
 

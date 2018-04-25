@@ -77,6 +77,9 @@ void operatorControl() {
 
   //digitalWrite(LIGHTS, HIGH);
 	while (1) {
+
+		lcdPrint(LCDSCREEN, 1, "Lift: %d", encoderGet(liftEncoder));
+		//lcdPrint(LCDSCREEN, 2, "L: %d", encoderGet(leftEncoder));
 		// if(joystickGetDigital(1, 8, JOY_LEFT) && !button1Pressed){
 		// 	manualMode = !manualMode;
 		// 	button1Pressed = 1;

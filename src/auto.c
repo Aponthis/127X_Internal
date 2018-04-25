@@ -49,7 +49,12 @@ PID drive_velocity = { //Sets values for drive velocity PID
 };
 
 PID drive_turn = {
-  .Kp = 3.550, .Ki = 0.006, .Kd = 0.00, .error = 0, .previous_error = 0, .integral = 0,  //Kp was 2.450, Ki was .012
+  .Kp = 3.550, .Ki = 0.006, .Kd = 0.00, .error = 0, .previous_error = 0, .integral = 0,  //Kp was 3.550, Ki was .006
+  .derivative = 0, .target = 0, .actual = 0, .output_power = 0
+};
+
+PID drive_correct = {
+  .Kp = 0.15, .Ki = 0.000, .Kd = 0.00, .error = 0, .previous_error = 0, .integral = 0,  //Kp was 3.550, Ki was .006
   .derivative = 0, .target = 0, .actual = 0, .output_power = 0
 };
 
@@ -57,6 +62,9 @@ bool driveOrTurn = 0; //0 if driving forward, 1 if turning
 
 void drive(int targetValue, int delayAfterward, int cancelTime){
 	encoderReset(driveEncoder);
+
+  encoderReset(leftEncoder);
+  encoderReset(rightEncoder);
 
   driveOrTurn = 0;
 
@@ -88,6 +96,9 @@ int fullPower = 0;
 
 void driveImprecise(int targetValue, int delayAfterward, int cancelTime){
 	encoderReset(driveEncoder);
+
+  encoderReset(leftEncoder);
+  encoderReset(rightEncoder);
 
   driveOrTurn = 0;
 
@@ -144,7 +155,6 @@ int ticks = 0;
 void fourBarAuto(void * parameter){
     while(isAutonomous()){
     fourBar();
-    roller();
     delay(20);
   }
 }
@@ -164,8 +174,8 @@ int currentPosition;
 
 void driveAuto(void * parameter){ //Drive state task
   while(isAutonomous()){
-
-    lcdPrint(LCDSCREEN, 2, "Drive act: %d", drive_position.actual);
+    lcdPrint(LCDSCREEN, 1, "R: %d", encoderGet(rightEncoder));
+    lcdPrint(LCDSCREEN, 2, "L: %d", encoderGet(leftEncoder));
     drive_turn.actual = gyroGet(gyro);
     drive_turn.error = drive_turn.target - drive_turn.actual;  //Proportional term
     drive_turn.previous_error = drive_turn.error;
@@ -173,17 +183,10 @@ void driveAuto(void * parameter){ //Drive state task
     if(abs(drive_turn.output_power) < 127){
       drive_turn.integral += drive_turn.error;  //Integral term
     }
-    if(abs(drive_turn.error) < 2){
+    if(abs(drive_turn.error) < 1){
       drive_turn.integral = 0;
     }
 
-    // if(abs(drive_turn.error) > 20){
-    //   if (drive_turn.integral > 500){
-    //     drive_turn.integral = 500;
-    //   } else if (drive_turn.integral < -500){
-    //     drive_turn.integral = -500;
-    //   }
-    // }
     drive_turn.output_power = drive_turn.Kp * drive_turn.error + drive_turn.integral * \
      drive_turn.Ki - drive_turn.derivative * drive_turn.Kd;
     if(drive_turn.output_power > 127){
@@ -191,11 +194,28 @@ void driveAuto(void * parameter){ //Drive state task
     } else if (drive_turn.output_power < -127){
       drive_turn.output_power = -127;
     }
+
+    drive_correct.actual = encoderGet(rightEncoder) - encoderGet(leftEncoder);
+    drive_correct.error = drive_correct.target - drive_correct.actual;  //Proportional term
+    drive_correct.previous_error = drive_correct.error;
+    drive_correct.derivative = drive_correct.previous_error - drive_correct.error;  //Derivative term
+    if(abs(drive_correct.output_power) < 127){
+      drive_correct.integral += drive_correct.error;  //Integral term
+    }
+    if(abs(drive_correct.error) < 1){
+      drive_correct.integral = 0;
+    }
+
+    drive_correct.output_power = drive_correct.Kp * drive_correct.error + drive_correct.integral * \
+     drive_correct.Ki - drive_correct.derivative * drive_correct.Kd;
+    if(drive_correct.output_power > 127){
+      drive_correct.output_power = 127;
+    } else if (drive_correct.output_power < -127){
+      drive_correct.output_power = -127;
+    }
+
 		if(driveOrTurn == 0){
       drive_position.actual = encoderGet(driveEncoder);
-      //lcdPrint(LCDSCREEN, 2, "LDrive: %d", leftDrivePower);
-      //lcdPrint(LCDSCREEN, 1, "Driving");
-
 
       if(drive_position.target - drive_position.actual < 150){
   	    drive_position.previous_error = drive_position.error;
@@ -217,8 +237,8 @@ void driveAuto(void * parameter){ //Drive state task
          drive_position.output_power = -127;
         }
 
-        leftDrivePower = drive_position.output_power - drive_turn.output_power;
-        rightDrivePower = drive_position.output_power + drive_turn.output_power;
+        leftDrivePower = drive_position.output_power - drive_correct.output_power; ////////////////////////////////////////////////
+        rightDrivePower = drive_position.output_power + drive_correct.output_power;
 
         if(leftDrivePower > 127){     //Makes sure both sides aren't just maxxed out without a difference in velocity between sides for angle correction
           rightDrivePower -= (leftDrivePower - 127);
@@ -271,13 +291,8 @@ void driveAuto(void * parameter){ //Drive state task
         drive_velocity.output_power += drive_velocity.Kp * drive_velocity.error + drive_velocity.Ki\
          * drive_velocity.integral - drive_velocity.Kd * drive_velocity.derivative;
 
-        // if(drive_velocity.output_power > 127){
-        //   drive_velocity.output_power = 127;
-        // } else if(drive_velocity.output_power < -127){
-        //   drive_velocity.output_power = -127;
-        // }
-        leftDrivePower = drive_velocity.output_power - drive_turn.output_power;
-        rightDrivePower = drive_velocity.output_power + drive_turn.output_power;
+        leftDrivePower = drive_velocity.output_power - drive_correct.output_power;
+        rightDrivePower = drive_velocity.output_power + drive_correct.output_power;
 
         if(leftDrivePower > 127){     //Makes sure both sides aren't just maxed out without a difference in velocity between sides for angle correction
           rightDrivePower -= (leftDrivePower - 127);
@@ -375,8 +390,6 @@ void autonomous() {
                                 NULL,
                                 TASK_PRIORITY_DEFAULT);
 
-  gyroReset(gyro);  //Resets gyro accumulated count
-
 
   switch(autonMode){
     case 0 :  //If autonMode is 0, which is default
@@ -386,10 +399,10 @@ void autonomous() {
 
     four_bar.target = STACKANGLE + 300;
 
-    if(autonVariation == 5){  //Juke out opponents by instead stacking on stationary goal
-      turn(-90, 500, 2000);
-    } else if (autonVariation == 6){
-      turn(90, 500, 2000);
+    if(autonVariation == 5){  //Juke out opponents by instead stacking on stationary goal, L side
+      turn(-91, 500, 2000);
+    } else if (autonVariation == 6){  //R side
+      turn(91, 500, 2000);
     }
 
     lift(STATGO1, 200, 1000, 1);
@@ -399,7 +412,11 @@ void autonomous() {
       delay(3000);  //Wait
     }
 
-    drive(770, 0600, 5000);  //Drive toward statgo
+    if(autonVariation != 5 && autonVariation != 6){
+      drive(770, 0600, 5000);  //Drive toward statgo
+    } else {
+      drive(670, 0600, 5000);
+    }
 
     four_bar.target = PICKUPANGLE;
     delay(400);
@@ -413,14 +430,9 @@ void autonomous() {
     four_bar.target = STACKANGLE;
     delay(400);
 
-    if(autonVariation == 5 || autonVariation == 6){
-      drive(-1000, 12000, 3000);
-    }
     if(autonVariation == 1 || autonVariation == 2){
 
       delay(500);
-
-      four_bar.target = STACKANGLE;
 
       drive(-800, 400, 3000);
 
@@ -428,13 +440,33 @@ void autonomous() {
     }
 
     if(autonVariation == 3){  //Charging left
-      turn(75, 000, 2000);
+      driveImprecise(-300, 000, 1000);
+
+      turn(62, 000, 2000);
 
       lift(DROPHEIGHT, 000, 3000, 0);
 
-      driveImprecise(3800, 1000, 6000);
+      driveImprecise(3300, 1000, 6000);
     } else if (autonVariation == 4){  //Charging right
-      turn(-75, 000, 2000);
+      driveImprecise(-300, 000, 1000);
+
+      turn(-62, 000, 2000);
+
+      lift(DROPHEIGHT, 000, 3000, 0);
+
+      driveImprecise(3300, 1000, 6000);
+    } else if (autonVariation == 5){  //Charging left after juke
+      driveImprecise(-300, 000, 1000);
+
+      turn(-28, 000, 2000);
+
+      lift(DROPHEIGHT, 000, 3000, 0);
+
+      driveImprecise(3300, 1000, 6000);
+    } else if (autonVariation == 6){  //Charging right after juke
+      driveImprecise(-300, 000, 1000);
+
+      turn(28, 000, 2000);
 
       lift(DROPHEIGHT, 000, 3000, 0);
 
@@ -453,7 +485,7 @@ void autonomous() {
 
     delay(200);
 
-    drive(1800, 200, 4000);  //Drives toward mobile goal
+    drive(1900, 200, 4000);  //Drives toward mobile goal
 
     mogoPosition = 0;  //Picks up mobile goal
     four_bar.target = STACKANGLE;
@@ -466,9 +498,11 @@ void autonomous() {
     if(autonVariation == 1){  //5pt zone L
       drive(-950, 000, 3500);
 
-      turn(160, 000, 4000);  //turns around
+      turn(160, 200, 4000);  //turns around
 
       shouldDrop = 1;
+
+      delay(200);
 
       lift(MOGOHEIGHT, 000, 1000, 0);
 
@@ -477,13 +511,15 @@ void autonomous() {
 
       drive(-1000, 0000, 6000);  //drives away
     } else if (autonVariation == 2){  //5pt zone R
-      drive(-2800, 000, 3500);
+      drive(-950, 000, 3500);
 
-      turn(195, 000, 4000);  //turns around
+      turn(-160, 200, 4000);  //turns around
 
-      lift(MOGOHEIGHT, 200, 2000, 0);
+      shouldDrop = 1;
 
-      drive(200, 500, 1000);
+      delay(200);
+
+      lift(MOGOHEIGHT, 000, 1000, 0);
 
       mogoPosition = 1; //extends mobile goal lift
       delay(1100);
@@ -492,9 +528,11 @@ void autonomous() {
     } else if (autonVariation == 3){  //10pt zone L
       drive(-1450, 000, 3500);
 
-      turn(155, 000, 4000);  //turns around
+      turn(155, 200, 4000);  //turns around
 
       shouldDrop = 1;
+
+      delay(200);
 
       lift(MOGOHEIGHT, 000, 1000, 0);
 
@@ -505,28 +543,34 @@ void autonomous() {
 
       drive(-500, 2000, 3000);  //drives away
     } else if (autonVariation == 4){  //10pt zone R
-      drive(-2800, 000, 3500);
+      drive(-1450, 000, 3500);
 
-      turn(195, 000, 4000);  //turns around
+      turn(-155, 200, 4000);  //turns around
 
-      lift(MOGOHEIGHT, 200, 2000, 1);
+      shouldDrop = 1;
 
-      drive(450, 500, 1000);
+      delay(200);
+
+      lift(MOGOHEIGHT, 000, 1000, 0);
+
+      driveImprecise(150, 000, 1000);
 
       mogoPosition = 1; //extends mobile goal lift
       delay(1100);
 
-      drive(-1000, 2000, 6000);  //drives away
+      drive(-500, 2000, 3000);  //drives away
     }
 
     if(autonVariation == 5){  //20 pt zone L
       drive(-1750, 000, 3500);
 
-      turn(35, 200, 1500); //Turns parallel to bar, facing midpoint
+      turn(35, 00, 1500); //Turns parallel to bar, facing midpoint
 
-      drive(-400, 0, 3000);  //Drives parallel to bar
+      drive(-400, 200, 3000);  //Drives parallel to bar
 
       shouldDrop = 1;
+
+      delay(200);
 
       lift(MOGOHEIGHT, 000, 1000, 0);
 
@@ -550,26 +594,34 @@ void autonomous() {
     }
 
     if(autonVariation == 6){  //20 pt zone R
-      drive(-2950, 200, 3500);
+      drive(-1750, 000, 3500);
 
       turn(-35, 200, 1500); //Turns parallel to bar, facing midpoint
 
-      drive(-1400, 0, 3000);  //Drives parallel to bar
+      drive(-400, 200, 3000);  //Drives parallel to bar
+
+      shouldDrop = 1;
+
+      delay(200);
+
+      lift(MOGOHEIGHT, 000, 1000, 0);
 
       turn(-135, 200, 1500);
 
-      driveImprecise(500, 000, 3000);  //Drives to bar
+      driveImprecise(400, 000, 2000);  //Drives to bar
 
       fullPower = 1;
-      driveImprecise(400, 0, 1000); //Drives over bar
+      driveImprecise(300, 0, 1000); //Drives over bar
 
       mogoPosition = 1; //extends out mobile goal
       delay(1000);
 
       fullPower = -1;
-      driveImprecise(-550, 100, 1500);
+      driveImprecise(-450, 000, 1500);
       mogoPosition = 0;// pulls mobile goal lift away
       fullPower = 0;
+
+      drive(-500, 0, 1500);
 
     }
     delay(5000);
@@ -591,7 +643,7 @@ void autonomous() {
 
     delay(200);
 
-    drive(1800, 200, 4000);  //Drives toward mobile goal
+    drive(1870, 200, 4000);  //Drives toward mobile goal
 
     mogoPosition = 0;  //Picks up mobile goal
 
@@ -614,6 +666,8 @@ void autonomous() {
 
       four_bar.target = STACKANGLE;
 
+      delay(300);
+
       lift(DROPHEIGHT, 000, 2000, 0);
 
       turn(135, 000, 1500);
@@ -628,30 +682,30 @@ void autonomous() {
       drive(-300, 0, 1500);
 
     } else if (autonVariation == 2){  //5pt zone R
+      drive(-1700, 000, 3000);
+
       four_bar.target = STACKANGLE;
 
-      lift(MOGOHEIGHT + 3, 000, 3000, 0);
+      delay(300);
 
-      drive(-3700, 000, 5000);
+      lift(DROPHEIGHT, 000, 2000, 0);
 
-      turn(195, 000, 4000);  //turns around
+      turn(-135, 000, 1500);
 
       shouldDrop = 1;
 
-      delay(400);
+      lift(MOGOHEIGHT, 000, 2000, 0);
 
-      lift(MOGOHEIGHT, 200, 2000, 0);
+      mogoPosition = 1; //extends out mobile goal
+      delay(1000);
 
-      drive(200, 500, 1000);
-
-      mogoPosition = 1; //extends mobile goal lift
-      delay(1100);
-
-      drive(-1000, 0000, 6000);  //drives away
+      drive(-300, 0, 1500);
     } else if (autonVariation == 3){  //10pt zone L
-      drive(-2000, 000, 5000);
+      drive(-2200, 000, 5000);
 
       four_bar.target = STACKANGLE;
+
+      delay(300);
 
       lift(DROPHEIGHT, 000, 2000, 0);
 
@@ -661,7 +715,7 @@ void autonomous() {
 
       lift(MOGOHEIGHT, 000, 2000, 0);
 
-      drive(400, 200, 1000);
+      drive(500, 200, 1000);
 
       mogoPosition = 1; //extends out mobile goal
       delay(1000);
@@ -669,24 +723,26 @@ void autonomous() {
       drive(-400, 0, 1500);
 
     } else if (autonVariation == 4){  //10pt zone R
+      drive(-2200, 000, 5000);
+
       four_bar.target = STACKANGLE;
 
-      lift(MOGOHEIGHT + 3, 000, 3000, 0);
+      delay(300);
 
-      drive(-3600, 000, 5000);
+      lift(DROPHEIGHT, 000, 2000, 0);
 
-      turn(195, 100, 4000);  //turns around
+      turn(145, 000, 1500);
 
       shouldDrop = 1;
 
-      delay(400);
+      lift(MOGOHEIGHT, 000, 2000, 0);
 
-      driveImprecise(550, 500, 1000);
+      drive(500, 200, 1000);
 
-      mogoPosition = 1; //extends mobile goal lift
-      delay(1100);
+      mogoPosition = 1; //extends out mobile goal
+      delay(1000);
 
-      drive(-1000, 2000, 3000);  //drives away
+      drive(-400, 0, 1500); //drive away
     }
 
     if(autonVariation == 5){  //20 pt zone L
@@ -723,35 +779,35 @@ void autonomous() {
     }
 
     if(autonVariation == 6){  //20 pt zone R
-      drive(-3700, 000, 5000);
-
-      lift(MOGOHEIGHT, 0, 1000, 0);
-
-      turn(-35, 100, 1500); //Turns parallel to bar, facing midpoint
+      drive(-2400, 000, 5000);  //1850 for one cone
 
       four_bar.target = STACKANGLE;
 
-      drive(-1450, 0, 3000);  //Drives parallel to bar
+      turn(-35, 100, 1500); //Turns parallel to bar, facing midpoint
+
+      lift(DROPHEIGHT, 000, 2000, 0);
+
+      drive(-400, 0, 3000);  //Drives parallel to bar
 
       turn(-135, 000, 1500);
 
       shouldDrop = 1;
 
-      delay(100);
+      driveImprecise(400, 000, 3000);  //Drives to bar
 
-      driveImprecise(500, 000, 3000);  //Drives to bar
+      lift(MOGOHEIGHT, 000, 2000, 0);
 
       fullPower = 1;
-      driveImprecise(400, 0, 1000); //Drives over bar
+      driveImprecise(300, 0, 1000); //Drives over bar
 
       mogoPosition = 1; //extends out mobile goal
       delay(1000);
 
       fullPower = -1;
-      driveImprecise(-550, 100, 1500);
+      driveImprecise(-350, 100, 1500);
       mogoPosition = 0;// pulls mobile goal lift away
       fullPower = 0;
-
+      drive(-200, 0, 1500);
 
     }
     delay(15000);
@@ -768,7 +824,7 @@ void autonomous() {
 
       delay(100);
 
-      drive(1800, 200, 4000);  //Drives toward mobile goal
+      drive(1870, 200, 4000);  //Drives toward mobile goal
 
       mogoPosition = 0;  //Picks up mobile goal
 
@@ -790,24 +846,26 @@ void autonomous() {
 
       delay(350);
 
-      lift(DROPHEIGHT, 400, 2000, 1);
+      lift(DROPHEIGHT - 2, 600, 2000, 1);
 
       shouldDrop = 1; //drops 2nd cone
 
-      lift(23, 000, 2000, 1);
+      lift(28, 200, 2000, 0);
 
       four_bar.target = PICKUPANGLE;
 
-      drive_position.target += 400;
+      delay(100);
+
+      drive_position.target += 340;
 
       delay(100);
 
-      lift(LIFTBOTTOM, 650, 2000, 1);
+      lift(LIFTBOTTOM-5, 950, 2000, 0);
 
       lift(MOGOHEIGHT, 000, 2000, 0);
 
       if(autonVariation == 1){  //5pt zone L
-        drive(-1800, 000, 5000);  //1850 for one cone, 2400 for two cone
+        drive(-1600, 000, 5000);  //1850 for one cone, 2400 for two cone
 
         four_bar.target = STACKANGLE;
 
@@ -824,38 +882,34 @@ void autonomous() {
 
         drive(-500, 0, 1500);
       } else if (autonVariation == 2){  //5pt zone R
-        four_bar.target = STACKANGLE;
-
-        lift(MOGOHEIGHT + 3, 000, 3000, 0);
-
-        drive(-3700, 000, 5000);
-
-        turn(195, 000, 4000);  //turns around
-
-        shouldDrop = 1;
-
-        delay(400);
-
-        lift(MOGOHEIGHT, 200, 2000, 0);
-
-        drive(200, 500, 1000);
-
-        mogoPosition = 1; //extends mobile goal lift
-        delay(1100);
-
-        drive(-1000, 0000, 6000);  //drives away
-      } else if (autonVariation == 3){  //10pt zone L
-        drive(-2700, 000, 5000);  //1850 for one cone, 2400 for two cone
+        drive(-1600, 000, 5000);  //1850 for one cone, 2400 for two cone
 
         four_bar.target = STACKANGLE;
 
-        turn(120, 000, 1500);
+        turn(-140, 000, 1500);
 
         lift(DROPHEIGHT, 300, 2000, 0);
 
         shouldDrop = 1;
 
-        drive(300, 100, 3000);
+        lift(MOGOHEIGHT, 000, 2000, 1);
+
+        mogoPosition = 1; //extends out mobile goal
+        delay(1100);
+
+        drive(-500, 0, 1500);
+      } else if (autonVariation == 3){  //10pt zone L
+        driveImprecise(-2100, 000, 5000);  //1850 for one cone, 2400 for two cone
+
+        four_bar.target = STACKANGLE;
+
+        turn(140, 000, 1500);
+
+        lift(DROPHEIGHT, 300, 2000, 0);
+
+        shouldDrop = 1;
+
+        drive(550, 100, 3000);
 
         lift(MOGOHEIGHT, 000, 2000, 1);
 
@@ -865,28 +919,28 @@ void autonomous() {
         drive(-500, 0, 1500);
 
       } else if (autonVariation == 4){  //10pt zone R
+        driveImprecise(-2100, 000, 5000);  //1850 for one cone, 2400 for two cone
+
         four_bar.target = STACKANGLE;
 
-        lift(MOGOHEIGHT + 3, 000, 3000, 0);
+        turn(-140, 000, 1500);
 
-        drive(-3600, 000, 5000);
-
-        turn(195, 100, 4000);  //turns around
+        lift(DROPHEIGHT, 300, 2000, 0);
 
         shouldDrop = 1;
 
-        delay(400);
+        drive(550, 100, 3000);
 
-        driveImprecise(550, 500, 1000);
+        lift(MOGOHEIGHT, 000, 2000, 1);
 
-        mogoPosition = 1; //extends mobile goal lift
+        mogoPosition = 1; //extends out mobile goal
         delay(1100);
 
-        drive(-1000, 2000, 3000);  //drives away
+        drive(-500, 0, 1500); //drives away
       }
 
       if(autonVariation == 5){  //20 pt zone L
-        drive(-3100, 000, 5000);  //1850 for one cone, 2400 for two cone
+        drive(-2900, 000, 5000);  //1850 for one cone, 2400 for two cone
 
         four_bar.target = STACKANGLE;
 
@@ -896,7 +950,7 @@ void autonomous() {
 
         //drive(-400, 0, 3000);  //Drives parallel to bar
 
-        turn(135, 000, 1500);
+        turn(125, 000, 1500);
 
         lift(DROPHEIGHT, 000, 2000, 0);
 
@@ -921,121 +975,119 @@ void autonomous() {
       }
 
       if(autonVariation == 6){  //20 pt zone R
-        drive(-3700, 000, 5000);
-
-        lift(MOGOHEIGHT, 0, 1000, 0);
-
-        turn(-35, 100, 1500); //Turns parallel to bar, facing midpoint
+        drive(-3100, 000, 5000);  //1850 for one cone, 2400 for two cone
 
         four_bar.target = STACKANGLE;
 
-        drive(-1450, 0, 3000);  //Drives parallel to bar
+        //turn(-35, 100, 1500); //Turns parallel to bar, facing midpoint
 
-        turn(-135, 000, 1500);
+        //lift(DROPHEIGHT, 000, 2000, 0);
+
+        //drive(-400, 0, 3000);  //Drives parallel to bar
+
+        turn(-125, 000, 1500);
+
+        lift(DROPHEIGHT, 000, 2000, 0);
+
+        driveImprecise(400, 000, 3000);  //Drives to bar
 
         shouldDrop = 1;
 
-        delay(100);
-
-        driveImprecise(500, 000, 3000);  //Drives to bar
+        lift(MOGOHEIGHT, 000, 2000, 0);
 
         fullPower = 1;
-        driveImprecise(400, 0, 1000); //Drives over bar
+        driveImprecise(300, 0, 1000); //Drives over bar
 
         mogoPosition = 1; //extends out mobile goal
-        delay(1000);
+        delay(1100);
 
         fullPower = -1;
-        driveImprecise(-550, 100, 1500);
+        driveImprecise(-350, 100, 1500);
         mogoPosition = 0;// pulls mobile goal lift away
         fullPower = 0;
+        drive(-100, 0, 1500);
+
       }
     break;
 
-    case 6:  //Mogo from autoloader
+    case 6:  //4 cone auton   &&&&&&&&&&&&&&&&&&&&
     four_bar.target = PICKUPANGLE;
 
-    lift(MOGOHEIGHT, 000, 2500, 1);  //Bring lift up to get out of way for mobile goal lift
+    lift(MOGOHEIGHT, 400, 2500, 0);  //Bring lift up to get out of way for mobile goal lift
 
     mogoPosition = 1; //puts out mobile goal lift
 
-    delay(200);
+    delay(100);
 
-    drive(1800, 200, 4000);  //Drives toward mobile goal
+    drive(1870, 200, 4000);  //Drives toward mobile goal
 
     mogoPosition = 0;  //Picks up mobile goal
 
     delay(250);
 
-    shouldDrop = 1; //drops first cone
+    shouldDrop = 1; //drops 1st cone
 
     delay(950);
 
-    lift(40, 000, 2000, 0);
+    drive_position.target += 300;
 
-    drive(-920, 200, 3000);
+    delay(100);
 
-    if((autonVariation == 1) || autonVariation == 3){ //if left side variation
-      turn(45, 200, 2000);
+    lift(LIFTBOTTOM, 800, 2000, 0);
 
-      drive(130, 000, 1000);
+    lift(20, 200, 2000, 0);
 
-      lift(LOADERHEIGHT, 300, 2000, 0);
+    four_bar.target = STACKANGLE;
 
-      four_bar.target = STACKANGLE;
-      delay(800);
+    delay(350);
 
-      lift(DROPHEIGHT, 500, 2000, 1);
+    lift(DROPHEIGHT, 400, 2000, 1);
 
-      shouldDrop = 1;  //drops 1st loader cone
+    shouldDrop = 1; //drops 2nd cone
 
-      lift(30, 0, 2000, 1);
-      four_bar.target = PICKUPANGLE;
-      delay(400);
+    lift(24, 100, 2000, 1);
 
-      lift(LOADERHEIGHT, 200, 2000, 1);
+    four_bar.target = PICKUPANGLE;
 
-      lift(25, 200, 2000, 1);
-      four_bar.target = STACKANGLE;
-      delay(500);
+    drive_position.target += 400;
 
-      lift(10, 300, 2000, 1);
+    delay(100);
 
-      shouldDrop = 1; //drops 2nd loader cone
+    lift(LIFTBOTTOM, 750, 2000, 1);  //picks up 3rd cone
 
-      lift(33, 0, 2000, 1);
-      four_bar.target = PICKUPANGLE;
-      delay(400);
+    lift(MOGOHEIGHT, 000, 2000, 0);
 
-      lift(LOADERHEIGHT, 200, 2000, 1);
+    lift(23, 000, 2000, 1);
 
-      lift(36, 200, 2000, 1);
-      four_bar.target = STACKANGLE;
-      delay(500);
+    four_bar.target = STACKANGLE;
 
-      lift(18, 200, 2000, 1);
+    delay(350);
 
-      shouldDrop = 1; //drop 3rd loader cone
+    lift(9, 400, 2000, 1);
 
-      lift(40, 200, 2000, 1);
+    shouldDrop = 1; //drops 3rd cone
 
-      four_bar.target = PICKUPANGLE;
+    lift(26, 000, 2000, 1);
 
-      delay(400);
+    four_bar.target = PICKUPANGLE;
 
-      lift(LOADERHEIGHT, 200, 2000, 1);
+    drive_position.target += 400;
 
-      lift(40, 200, 2000, 1);
-      four_bar.target = STACKANGLE;
-      delay(500);
+    lift(LIFTBOTTOM, 650, 2000, 1);  //picks up 4th cone
 
-      lift(23, 200, 2000, 1);
+    lift(MOGOHEIGHT, 000, 2000, 1);
 
-      shouldDrop = 1; //drop 4th loader cone
+    four_bar.target = STACKANGLE;
 
-      lift(40, 200, 2000, 1);
+    lift(12, 200, 2000, 1);
 
-    }
+    shouldDrop = 1;  //drops 4th cone
+
+    lift(MOGOHEIGHT, 000, 2000, 1);
+
+    delay(1100);
+
+    drive(-500, 0, 1500);
 
     break;
   }

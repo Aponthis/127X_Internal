@@ -21,6 +21,9 @@ Encoder driveEncoder;
 //Encoder shiftEncoder;
 Encoder mogoEncoder;
 
+Encoder leftEncoder;
+Encoder rightEncoder;
+
 TaskHandle liftAutoTask;
 TaskHandle driveAutoTask;
 TaskHandle clockAutoTask;
